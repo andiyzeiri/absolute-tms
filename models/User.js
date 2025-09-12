@@ -37,6 +37,16 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\+?[\d\s\-\(\)]+$/, 'Please provide a valid phone number']
   },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    match: [/^\+?[\d\s\-\(\)]+$/, 'Please provide a valid phone number']
+  },
+  companyName: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Company name cannot exceed 100 characters']
+  },
   address: {
     street: String,
     city: String,

@@ -6,7 +6,7 @@ const crypto = require('crypto');
 class AuthController {
   static async register(req, res) {
     try {
-      const { firstName, lastName, email, password, role = 'driver', phone } = req.body;
+      const { firstName, lastName, email, password, role = 'driver', phone, phoneNumber, companyName } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -24,7 +24,9 @@ class AuthController {
         email: email.toLowerCase(),
         password,
         role,
-        phone,
+        phone: phone || phoneNumber,
+        phoneNumber,
+        companyName,
         emailVerificationToken: JWTUtils.generateEmailVerificationToken()
       });
 
