@@ -69,7 +69,8 @@ const MetricCard = ({ title, value, change, changeColor, compareText = "vs last 
   </Card>
 );
 
-// const StatusCard = ({ title, items, color }) => (
+/*
+const StatusCard = ({ title, items, color }) => (
   <Card sx={{ 
     height: '100%',
     border: '1px solid #E5E7EB',
@@ -120,6 +121,7 @@ const MetricCard = ({ title, value, change, changeColor, compareText = "vs last 
     </CardContent>
   </Card>
 );
+*/
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
