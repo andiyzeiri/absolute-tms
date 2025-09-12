@@ -69,7 +69,7 @@ const MetricCard = ({ title, value, change, changeColor, compareText = "vs last 
   </Card>
 );
 
-const StatusCard = ({ title, items, color }) => (
+// const StatusCard = ({ title, items, color }) => (
   <Card sx={{ 
     height: '100%',
     border: '1px solid #E5E7EB',
@@ -134,37 +134,37 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const revenueData = [
-    { month: 'Jan', revenue: 120000, loads: 145 },
-    { month: 'Feb', revenue: 150000, loads: 178 },
-    { month: 'Mar', revenue: 180000, loads: 203 },
-    { month: 'Apr', revenue: 160000, loads: 189 },
-    { month: 'May', revenue: 220000, loads: 245 },
-    { month: 'Jun', revenue: 250000, loads: 268 },
-  ];
+  // const revenueData = [
+  //   { month: 'Jan', revenue: 120000, loads: 145 },
+  //   { month: 'Feb', revenue: 150000, loads: 178 },
+  //   { month: 'Mar', revenue: 180000, loads: 203 },
+  //   { month: 'Apr', revenue: 160000, loads: 189 },
+  //   { month: 'May', revenue: 220000, loads: 245 },
+  //   { month: 'Jun', revenue: 250000, loads: 268 },
+  // ];
 
-  const loadStatusData = [
-    { name: 'Delivered', value: 45, color: '#10B981' },
-    { name: 'In Transit', value: 28, color: '#F59E0B' },
-    { name: 'Pending', value: 18, color: '#6B7280' },
-    { name: 'Delayed', value: 9, color: '#EF4444' }
-  ];
+  // const loadStatusData = [
+  //   { name: 'Delivered', value: 45, color: '#10B981' },
+  //   { name: 'In Transit', value: 28, color: '#F59E0B' },
+  //   { name: 'Pending', value: 18, color: '#6B7280' },
+  //   { name: 'Delayed', value: 9, color: '#EF4444' }
+  // ];
 
-  const recentLoads = [
-    { name: 'Load #L-2024-001', subtitle: 'Toronto → Vancouver', value: '$4,250' },
-    { name: 'Load #L-2024-002', subtitle: 'Montreal → Calgary', value: '$3,890' },
-    { name: 'Load #L-2024-003', subtitle: 'Halifax → Winnipeg', value: '$5,120' },
-  ];
+  // const recentLoads = [
+  //   { name: 'Load #L-2024-001', subtitle: 'Toronto → Vancouver', value: '$4,250' },
+  //   { name: 'Load #L-2024-002', subtitle: 'Montreal → Calgary', value: '$3,890' },
+  //   { name: 'Load #L-2024-003', subtitle: 'Halifax → Winnipeg', value: '$5,120' },
+  // ];
 
-  const topDrivers = [
-    { name: 'John Stevens', subtitle: '24 loads completed', value: '98%' },
-    { name: 'Sarah Miller', subtitle: '21 loads completed', value: '96%' },
-    { name: 'Mike Johnson', subtitle: '19 loads completed', value: '94%' },
-  ];
+  // const topDrivers = [
+  //   { name: 'John Stevens', subtitle: '24 loads completed', value: '98%' },
+  //   { name: 'Sarah Miller', subtitle: '21 loads completed', value: '96%' },
+  //   { name: 'Mike Johnson', subtitle: '19 loads completed', value: '94%' },
+  // ];
 
   const [ownerOperators, setOwnerOperators] = useState([]);
   const [companyDrivers, setCompanyDrivers] = useState([]);
-  const [driversLoading, setDriversLoading] = useState(true);
+  // const [driversLoading, setDriversLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardStats();

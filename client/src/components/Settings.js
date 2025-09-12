@@ -35,9 +35,6 @@ import {
   Security,
   Notifications,
   Palette,
-  Language,
-  LocationOn,
-  Payment,
   Api,
   Save,
   Edit,
@@ -46,13 +43,10 @@ import {
   Visibility,
   VisibilityOff,
   Camera,
-  Email,
-  Phone,
   Lock,
   Close,
   CheckCircle,
-  Warning,
-  Info
+  Warning
 } from '@mui/icons-material';
 
 const SettingsSection = ({ title, icon, children }) => (
@@ -117,7 +111,7 @@ const Settings = () => {
   });
 
   // API Keys
-  const [apiKeys, setApiKeys] = useState([
+  // const [apiKeys, setApiKeys] = useState([
     { id: '1', name: 'Google Maps API', key: 'AIza...hidden', status: 'active', lastUsed: '2024-01-15' },
     { id: '2', name: 'Weather API', key: 'key_...hidden', status: 'active', lastUsed: '2024-01-14' },
     { id: '3', name: 'Fuel API', key: 'fuel...hidden', status: 'inactive', lastUsed: '2024-01-10' }

@@ -41,20 +41,13 @@ import {
   AccessTime,
   Warning,
   CheckCircle,
-  Error,
   Pending,
-  Refresh,
-  Timeline,
   Assessment,
   Sync,
   CloudSync,
   DeviceHub,
   Schedule,
-  LocalShipping,
-  GroupWork,
   TrendingUp,
-  PlayArrow,
-  Pause,
   Stop,
   Hotel,
   Build
@@ -88,8 +81,8 @@ const EldManagement = () => {
   // Dialog states
   const [selectedLog, setSelectedLog] = useState(null);
   const [showLogDialog, setShowLogDialog] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState(null);
-  const [showDeviceDialog, setShowDeviceDialog] = useState(false);
+  // const [selectedDevice, setSelectedDevice] = useState(null);
+  // const [showDeviceDialog, setShowDeviceDialog] = useState(false);
   
   // Alerts
   const [alert, setAlert] = useState({ show: false, message: '', severity: 'info' });
@@ -105,7 +98,7 @@ const EldManagement = () => {
     if (activeTab === 0) loadDriverLogs();
     else if (activeTab === 1) loadEldDevices();
     else if (activeTab === 2) loadComplianceReport();
-  }, [activeTab, page, filters]);
+  }, [activeTab, page, filters, loadEldData, loadDriverLogs, loadComplianceReport]);
 
   const loadEldData = async () => {
     await Promise.all([

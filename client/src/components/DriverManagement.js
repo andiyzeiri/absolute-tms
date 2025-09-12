@@ -44,10 +44,8 @@ import {
   Phone,
   Email,
   Badge as BadgeIcon,
-  LocationOn,
   Close,
   DriveEta,
-  Assignment,
   AttachMoney,
   AddCircle,
   RemoveCircle

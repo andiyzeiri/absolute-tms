@@ -41,17 +41,15 @@ import {
   Group,
   Phone,
   Email,
-  LocationOn,
   AttachMoney,
   Star,
   Close,
-  Business,
   TrendingUp
 } from '@mui/icons-material';
 
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
