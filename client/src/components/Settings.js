@@ -112,10 +112,10 @@ const Settings = () => {
 
   // API Keys
   // const [apiKeys, setApiKeys] = useState([
-    { id: '1', name: 'Google Maps API', key: 'AIza...hidden', status: 'active', lastUsed: '2024-01-15' },
-    { id: '2', name: 'Weather API', key: 'key_...hidden', status: 'active', lastUsed: '2024-01-14' },
-    { id: '3', name: 'Fuel API', key: 'fuel...hidden', status: 'inactive', lastUsed: '2024-01-10' }
-  ]);
+  //   { id: '1', name: 'Google Maps API', key: 'AIza...hidden', status: 'active', lastUsed: '2024-01-15' },
+  //   { id: '2', name: 'Weather API', key: 'key_...hidden', status: 'active', lastUsed: '2024-01-14' },
+  //   { id: '3', name: 'Fuel API', key: 'fuel...hidden', status: 'inactive', lastUsed: '2024-01-10' }
+  // ]);
 
   const handleSaveProfile = () => {
     setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
