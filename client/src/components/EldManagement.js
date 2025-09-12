@@ -751,8 +751,8 @@ const EldManagement = () => {
                         <IconButton
                           size="small"
                           onClick={() => {
-                            setSelectedDevice(device);
-                            setShowDeviceDialog(true);
+                            // setSelectedDevice(device);
+                            // setShowDeviceDialog(true);
                           }}
                         >
                           <Build />

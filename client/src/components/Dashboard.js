@@ -224,7 +224,7 @@ const Dashboard = () => {
         });
       }
       
-      setDriversLoading(false);
+      // setDriversLoading(false);
     } catch (error) {
       console.log('📊 Using fallback - API not connected');
       
@@ -316,7 +316,7 @@ const Dashboard = () => {
           yearToDateRevenue: 950000
         });
       }
-      setDriversLoading(false);
+      // setDriversLoading(false);
     } finally {
       setLoading(false);
     }

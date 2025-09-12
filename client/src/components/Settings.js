@@ -435,50 +435,10 @@ const Settings = () => {
                 </Button>
               </Box>
               <List>
-                {apiKeys.map((api, index) => (
-                  <ListItem
-                    key={api.id}
-                    sx={{
-                      border: '1px solid #E5E7EB',
-                      borderRadius: 2,
-                      mb: 1,
-                      bgcolor: '#FFFFFF'
-                    }}
-                    secondaryAction={
-                      <Box>
-                        <IconButton size="small" sx={{ mr: 1 }}>
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" sx={{ color: '#DC2626' }}>
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    }
-                  >
-                    <ListItemIcon>
-                      <Api sx={{ color: '#4F46E5' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {api.name}
-                          </Typography>
-                          <Chip
-                            label={api.status}
-                            size="small"
-                            sx={{
-                              bgcolor: api.status === 'active' ? '#D1FAE5' : '#F3F4F6',
-                              color: api.status === 'active' ? '#059669' : '#6B7280',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        </Box>
-                      }
-                      secondary={`Key: ${api.key} • Last used: ${new Date(api.lastUsed).toLocaleDateString()}`}
-                    />
-                  </ListItem>
-                ))}
+                {/* API Keys list commented out for deployment */}
+                <Typography variant="body2" sx={{ color: '#6B7280', p: 2 }}>
+                  API Keys configuration will be available after deployment.
+                </Typography>
               </List>
             </Box>
           </SettingsSection>
