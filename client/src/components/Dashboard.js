@@ -69,59 +69,7 @@ const MetricCard = ({ title, value, change, changeColor, compareText = "vs last 
   </Card>
 );
 
-/*
-const StatusCard = ({ title, items, color }) => (
-  <Card sx={{ 
-    height: '100%',
-    border: '1px solid #E5E7EB',
-    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
-  }}>
-    <CardContent sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
-          {title}
-        </Typography>
-        <IconButton size="small" sx={{ color: '#6B7280' }}>
-          <MoreVert />
-        </IconButton>
-      </Box>
-      
-      <Box sx={{ space: 2 }}>
-        {items.map((item, index) => (
-          <Box key={index} sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            py: 2,
-            borderBottom: index < items.length - 1 ? '1px solid #F3F4F6' : 'none'
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-              <Box sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                bgcolor: color,
-                mr: 2
-              }} />
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
-                  {item.name}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                  {item.subtitle}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827' }}>
-              {item.value}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-    </CardContent>
-  </Card>
-);
-*/
+// StatusCard component removed for deployment
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
