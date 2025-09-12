@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import LandingPage from './components/LandingPage';
 // import Login from './components/Login';  // Commented out for direct dashboard access
 import Dashboard from './components/Dashboard';
 import LoadManagement from './components/LoadManagement';
@@ -120,22 +121,23 @@ const theme = createTheme({
 const MainApp = () => {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [showApp, setShowApp] = useState(false);
 
   // Mock user for demo purposes when skipping login
   const mockUser = {
     firstName: 'Demo',
     lastName: 'User',
-    email: 'demo@absolutetms.com',
+    email: 'demo@overdrivetms.com',
     role: 'admin',
     fullName: 'Demo User'
   };
 
   const currentUser = user || mockUser;
 
-  // Skip login screen - go directly to dashboard
-  // if (!user) {
-  //   return <Login />;
-  // }
+  // Show landing page first
+  if (!showApp) {
+    return <LandingPage onEnterApp={() => setShowApp(true)} />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
