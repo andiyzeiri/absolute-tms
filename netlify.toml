@@ -22,3 +22,4 @@
 
 [build.environment]
   REACT_APP_API_URL = "https://your-backend-url.railway.app"
+  CI = "false"
