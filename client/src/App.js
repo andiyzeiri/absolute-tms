@@ -4,7 +4,8 @@ import { CssBaseline, Box } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './components/LandingPage';
-// import Login from './components/Login';  // Commented out for direct dashboard access
+import Login from './components/Login';
+import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import LoadManagement from './components/LoadManagement';
 import FleetManagement from './components/FleetManagement';
@@ -18,6 +19,7 @@ import FuelManagement from './components/FuelManagement';
 import EldManagement from './components/EldManagement';
 import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
+import { LocalShipping } from '@mui/icons-material';
 
 const theme = createTheme({
   palette: {
@@ -119,24 +121,51 @@ const theme = createTheme({
 });
 
 const MainApp = () => {
-  const { user } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [showApp, setShowApp] = useState(false);
+  const [authView, setAuthView] = useState('landing'); // 'landing', 'login', 'register'
 
-  // Mock user for demo purposes when skipping login
-  const mockUser = {
-    firstName: 'Demo',
-    lastName: 'User',
-    email: 'demo@overdrivetms.com',
-    role: 'admin',
-    fullName: 'Demo User'
-  };
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        bgcolor: '#fbfbfd' 
+      }}>
+        <LocalShipping sx={{ fontSize: 48, color: '#007AFF' }} />
+      </Box>
+    );
+  }
 
-  const currentUser = user || mockUser;
-
-  // Show landing page first
-  if (!showApp) {
-    return <LandingPage onEnterApp={() => setShowApp(true)} />;
+  // If not authenticated, show landing/auth pages
+  if (!isAuthenticated) {
+    if (authView === 'landing') {
+      return (
+        <LandingPage 
+          onEnterApp={() => setAuthView('login')} 
+        />
+      );
+    }
+    
+    if (authView === 'login') {
+      return (
+        <Login 
+          onSwitchToRegister={() => setAuthView('register')}
+          onBackToLanding={() => setAuthView('landing')}
+        />
+      );
+    }
+    
+    if (authView === 'register') {
+      return (
+        <Register 
+          onSwitchToLogin={() => setAuthView('login')}
+        />
+      );
+    }
   }
 
   const renderPage = () => {
@@ -175,7 +204,7 @@ const MainApp = () => {
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={setCurrentPage}
-        user={currentUser}
+        user={user}
       />
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         {renderPage()}

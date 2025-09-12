@@ -7,16 +7,21 @@ import {
   Button,
   Typography,
   Container,
-  Alert
+  Alert,
+  InputAdornment,
+  IconButton,
+  Link,
+  Divider
 } from '@mui/material';
-import { LocalShipping } from '@mui/icons-material';
+import { LocalShipping, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
-const Login = () => {
+const Login = ({ onSwitchToRegister, onBackToLanding }) => {
   const [credentials, setCredentials] = useState({
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -32,7 +37,10 @@ const Login = () => {
     setError('');
 
     try {
-      await login(credentials.email, credentials.password);
+      const result = await login(credentials.email, credentials.password);
+      if (!result.success) {
+        setError(result.error || 'Invalid credentials. Please try again.');
+      }
     } catch (err) {
       setError('Invalid credentials. Please try again.');
     } finally {
@@ -42,8 +50,8 @@ const Login = () => {
 
   const demoLogin = (role) => {
     const demoCredentials = {
-      admin: { email: 'admin@absolutetms.com', password: 'demo123' },
-      driver: { email: 'john.driver@absolutetms.com', password: 'demo123' }
+      admin: { email: 'admin@overdrivetms.com', password: 'demo123' },
+      driver: { email: 'john.driver@overdrivetms.com', password: 'demo123' }
     };
     
     setCredentials(demoCredentials[role]);
@@ -56,23 +64,24 @@ const Login = () => {
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          py: 4
         }}
       >
-        <Card sx={{ width: '100%', boxShadow: 3 }}>
+        <Card sx={{ width: '100%', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <LocalShipping sx={{ fontSize: 48, color: '#3b82f6', mb: 2 }} />
-              <Typography variant="h4" component="h1" gutterBottom>
-                🚛 TMS Login
+              <LocalShipping sx={{ fontSize: 48, color: '#007AFF', mb: 2 }} />
+              <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#1D1D1F', fontWeight: 600 }}>
+                Welcome back
               </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Transportation Management System
+              <Typography variant="body1" color="#86868B">
+                Sign in to your OverdriveTMS account
               </Typography>
             </Box>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                 {error}
               </Alert>
             )}
@@ -87,37 +96,91 @@ const Login = () => {
                 margin="normal"
                 required
                 autoFocus
+                sx={{ mb: 2 }}
               />
               <TextField
                 fullWidth
                 label="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={credentials.password}
                 onChange={(e) => handleChange('password', e.target.value)}
                 margin="normal"
                 required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
+                size="large"
                 disabled={loading}
+                sx={{ 
+                  py: 1.5,
+                  bgcolor: '#007AFF',
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  boxShadow: 'none',
+                  mb: 2,
+                  '&:hover': { 
+                    bgcolor: '#0056CC',
+                    boxShadow: 'none'
+                  }
+                }}
               >
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="body2" color="textSecondary" textAlign="center" gutterBottom>
-                Demo Accounts:
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Link 
+                component="button"
+                variant="body2"
+                sx={{ 
+                  color: '#007AFF',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  '&:hover': { textDecoration: 'underline' }
+                }}
+              >
+                Forgot your password?
+              </Link>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="#86868B" textAlign="center" gutterBottom>
+                Try the demo:
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
                 <Button
                   variant="outlined"
                   size="small"
                   onClick={() => demoLogin('admin')}
-                  sx={{ flex: 1 }}
+                  sx={{ 
+                    flex: 1,
+                    textTransform: 'none',
+                    borderColor: '#D2D2D7',
+                    color: '#1D1D1F',
+                    '&:hover': { 
+                      borderColor: '#007AFF',
+                      bgcolor: 'rgba(0, 122, 255, 0.04)'
+                    }
+                  }}
                 >
                   Admin Demo
                 </Button>
@@ -125,11 +188,55 @@ const Login = () => {
                   variant="outlined"
                   size="small"
                   onClick={() => demoLogin('driver')}
-                  sx={{ flex: 1 }}
+                  sx={{ 
+                    flex: 1,
+                    textTransform: 'none',
+                    borderColor: '#D2D2D7',
+                    color: '#1D1D1F',
+                    '&:hover': { 
+                      borderColor: '#007AFF',
+                      bgcolor: 'rgba(0, 122, 255, 0.04)'
+                    }
+                  }}
                 >
                   Driver Demo
                 </Button>
               </Box>
+            </Box>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="#86868B">
+                New to OverdriveTMS?{' '}
+                <Link 
+                  component="button"
+                  variant="body2"
+                  onClick={onSwitchToRegister}
+                  sx={{ 
+                    color: '#007AFF',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  Create an account
+                </Link>
+              </Typography>
+              {onBackToLanding && (
+                <Box sx={{ mt: 2 }}>
+                  <Link 
+                    component="button"
+                    variant="body2"
+                    onClick={onBackToLanding}
+                    sx={{ 
+                      color: '#86868B',
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    ← Back to home
+                  </Link>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>

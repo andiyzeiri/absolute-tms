@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   Box,
   List,
@@ -44,12 +45,10 @@ const menuItems = [
 ];
 
 const Sidebar = ({ currentPage, onPageChange, user }) => {
-  // const { logout } = useAuth();  // Commented out for demo mode
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    // For demo mode, just show a notification instead of actual logout
-    alert('Logout clicked - this is demo mode');
-    // logout();
+    logout();
   };
 
   const filteredItems = menuItems.filter(item => 
