@@ -1,0 +1,24 @@
+[build]
+  base = "client"
+  publish = "build"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-backend-url.railway.app/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/uploads/*"
+  to = "https://your-backend-url.railway.app/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  REACT_APP_API_URL = "https://your-backend-url.railway.app"
