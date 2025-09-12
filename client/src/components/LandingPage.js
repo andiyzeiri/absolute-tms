@@ -5,24 +5,14 @@ import {
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
-  AppBar,
-  Toolbar,
-  Chip,
   useTheme,
+  Stack,
 } from '@mui/material';
 import {
   LocalShipping,
   Speed,
-  TrendingUp,
-  Security,
-  Groups,
   Analytics,
   ArrowForward,
-  CheckCircle,
-  Phone,
-  Email,
 } from '@mui/icons-material';
 
 const LandingPage = ({ onEnterApp }) => {
@@ -30,292 +20,359 @@ const LandingPage = ({ onEnterApp }) => {
 
   const features = [
     {
-      icon: <LocalShipping sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
+      icon: <LocalShipping sx={{ fontSize: 56, color: '#1D1D1F', opacity: 0.8 }} />,
       title: 'Fleet Management',
-      description: 'Complete vehicle tracking, maintenance scheduling, and asset management in one platform.'
+      description: 'Complete control of your entire fleet operation.'
     },
     {
-      icon: <Speed sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
+      icon: <Speed sx={{ fontSize: 56, color: '#1D1D1F', opacity: 0.8 }} />,
       title: 'Real-Time Tracking',
-      description: 'Monitor your trucks and drivers in real-time with GPS tracking and route optimization.'
+      description: 'Live GPS monitoring and route optimization.'
     },
     {
-      icon: <TrendingUp sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: 'Analytics & Reports',
-      description: 'Comprehensive reporting with financial analytics, performance metrics, and insights.'
-    },
-    {
-      icon: <Security sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: 'ELD Compliance',
-      description: 'Built-in Electronic Logging Device integration for DOT compliance and safety.'
-    },
-    {
-      icon: <Groups sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: 'Driver Management',
-      description: 'Manage your drivers, track hours, performance, and payroll all in one place.'
-    },
-    {
-      icon: <Analytics sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
-      title: 'Load Management',
-      description: 'Efficiently manage loads, brokers, customers, and rate confirmations.'
+      icon: <Analytics sx={{ fontSize: 56, color: '#1D1D1F', opacity: 0.8 }} />,
+      title: 'Smart Analytics',
+      description: 'AI-powered insights for better decisions.'
     }
   ];
 
-  const benefits = [
-    'Reduce operational costs by up to 25%',
-    'Improve delivery efficiency and customer satisfaction',
-    'Stay DOT compliant with automated ELD integration',
-    'Real-time visibility across your entire fleet',
-    'Streamline invoicing and financial management',
-    'Scale your trucking business with confidence'
-  ];
-
   return (
-    <Box>
+    <Box sx={{ bgcolor: '#fbfbfd', minHeight: '100vh' }}>
       {/* Header */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', color: 'text.primary' }}>
-        <Toolbar>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <LocalShipping sx={{ mr: 1, color: theme.palette.primary.main, fontSize: 32 }} />
-            <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+      <Box 
+        sx={{ 
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          bgcolor: 'rgba(251, 251, 253, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)'
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            py: 2
+          }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: '1.25rem',
+                color: '#1D1D1F',
+                letterSpacing: '-0.5px'
+              }}
+            >
               OverdriveTMS
             </Typography>
+            <Stack direction="row" spacing={3}>
+              <Button 
+                onClick={onEnterApp}
+                sx={{ 
+                  color: '#1D1D1F',
+                  textTransform: 'none',
+                  fontWeight: 400,
+                  fontSize: '1rem',
+                  '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }
+                }}
+              >
+                Sign In
+              </Button>
+              <Button 
+                variant="contained"
+                onClick={onEnterApp}
+                sx={{ 
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '1rem',
+                  borderRadius: '20px',
+                  px: 3,
+                  boxShadow: 'none',
+                  '&:hover': { 
+                    bgcolor: '#0056CC',
+                    boxShadow: 'none'
+                  }
+                }}
+              >
+                Get Started
+              </Button>
+            </Stack>
           </Box>
-          <Button 
-            variant="outlined" 
-            onClick={onEnterApp}
-            sx={{ mr: 2 }}
-          >
-            Sign In
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={onEnterApp}
-            sx={{ bgcolor: theme.palette.primary.main }}
-          >
-            Get Started
-          </Button>
-        </Toolbar>
-      </AppBar>
+        </Container>
+      </Box>
 
       {/* Hero Section */}
-      <Box sx={{ 
-        bgcolor: 'linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%)',
-        py: 8,
-        position: 'relative'
-      }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Chip 
-                label="🚀 Advanced Transportation Management" 
+      <Box sx={{ py: { xs: 8, md: 12 } }}>
+        <Container maxWidth="md">
+          <Box textAlign="center">
+            <Typography 
+              variant="h1" 
+              sx={{ 
+                fontSize: { xs: '3rem', md: '4.5rem', lg: '5.5rem' }, 
+                fontWeight: 600,
+                color: '#1D1D1F',
+                mb: 2,
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em'
+              }}
+            >
+              OverdriveTMS
+            </Typography>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontSize: { xs: '1.75rem', md: '2.25rem' }, 
+                fontWeight: 400,
+                color: '#86868B',
+                mb: 6,
+                lineHeight: 1.2,
+                letterSpacing: '-0.01em'
+              }}
+            >
+              The future of fleet management.
+            </Typography>
+            
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={2} 
+              justifyContent="center"
+              sx={{ mb: 8 }}
+            >
+              <Button 
+                variant="contained"
+                size="large"
+                onClick={onEnterApp}
+                endIcon={<ArrowForward />}
                 sx={{ 
-                  mb: 3, 
-                  bgcolor: theme.palette.primary.light, 
+                  bgcolor: '#007AFF',
                   color: 'white',
-                  fontWeight: 600 
-                }} 
-              />
-              <Typography variant="h1" sx={{ 
-                fontSize: { xs: '2.5rem', md: '3.5rem' }, 
-                fontWeight: 800,
-                color: theme.palette.grey[900],
-                mb: 3,
-                lineHeight: 1.1
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '1.1rem',
+                  borderRadius: '25px',
+                  py: 1.5,
+                  px: 4,
+                  boxShadow: 'none',
+                  '&:hover': { 
+                    bgcolor: '#0056CC',
+                    boxShadow: 'none'
+                  }
+                }}
+              >
+                Try Demo
+              </Button>
+              <Button 
+                variant="outlined"
+                size="large"
+                sx={{ 
+                  color: '#007AFF',
+                  borderColor: '#007AFF',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '1.1rem',
+                  borderRadius: '25px',
+                  py: 1.5,
+                  px: 4,
+                  '&:hover': { 
+                    borderColor: '#0056CC',
+                    bgcolor: 'rgba(0, 122, 255, 0.04)'
+                  }
+                }}
+              >
+                Learn More
+              </Button>
+            </Stack>
+
+            {/* Hero Image */}
+            <Box sx={{ 
+              height: { xs: 300, md: 500 },
+              bgcolor: '#F5F5F7',
+              borderRadius: { xs: 3, md: 4 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              mb: 8
+            }}>
+              <LocalShipping sx={{ 
+                fontSize: { xs: 100, md: 200 }, 
+                color: '#D2D2D7',
+                opacity: 0.5
+              }} />
+              <Box sx={{
+                position: 'absolute',
+                bottom: 20,
+                left: 20,
+                bgcolor: 'rgba(29, 29, 31, 0.8)',
+                backdropFilter: 'blur(10px)',
+                color: 'white',
+                px: 2,
+                py: 1,
+                borderRadius: 2,
+                fontSize: '0.875rem'
               }}>
-                The Complete TMS Solution for Modern Trucking
-              </Typography>
-              <Typography variant="h6" sx={{ 
-                color: theme.palette.grey[600], 
-                mb: 4,
-                fontSize: '1.25rem',
-                lineHeight: 1.6
-              }}>
-                Streamline your trucking operations with our all-in-one Transportation Management System. 
-                Manage fleets, drivers, loads, and compliance from a single dashboard.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Button 
-                  variant="contained" 
-                  size="large"
-                  onClick={onEnterApp}
-                  endIcon={<ArrowForward />}
-                  sx={{ 
-                    py: 1.5, 
-                    px: 4,
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    bgcolor: theme.palette.primary.main
-                  }}
-                >
-                  Start Free Demo
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  size="large"
-                  sx={{ py: 1.5, px: 4, fontSize: '1.1rem' }}
-                >
-                  Watch Demo
-                </Button>
+                Live Demo Available
               </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ 
-                height: 400,
-                bgcolor: theme.palette.grey[100],
-                borderRadius: 3,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <LocalShipping sx={{ 
-                  fontSize: 150, 
-                  color: theme.palette.primary.light,
-                  opacity: 0.3
-                }} />
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    position: 'absolute',
-                    fontWeight: 600,
-                    color: theme.palette.primary.main
-                  }}
-                >
-                  Live Demo Available
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 10 }}>
-        <Box textAlign="center" sx={{ mb: 8 }}>
-          <Typography variant="h2" sx={{ fontWeight: 700, mb: 2 }}>
-            Everything You Need to Run Your Fleet
-          </Typography>
-          <Typography variant="h6" sx={{ color: theme.palette.grey[600], maxWidth: 600, mx: 'auto' }}>
-            Our comprehensive TMS platform includes all the tools and features you need to manage 
-            your trucking business efficiently.
-          </Typography>
-        </Box>
+      <Box sx={{ bgcolor: '#F5F5F7', py: { xs: 8, md: 12 } }}>
+        <Container maxWidth="lg">
+          <Box textAlign="center" sx={{ mb: 10 }}>
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontSize: { xs: '2.5rem', md: '3.5rem' },
+                fontWeight: 600,
+                color: '#1D1D1F',
+                mb: 3,
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Built for performance.
+            </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: '#86868B',
+                maxWidth: 700,
+                mx: 'auto',
+                fontWeight: 400,
+                lineHeight: 1.4
+              }}
+            >
+              Every feature designed to make fleet management effortless and intuitive.
+            </Typography>
+          </Box>
 
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Card sx={{ height: '100%', p: 3, border: '1px solid #E5E7EB', transition: 'all 0.3s ease' }}>
-                <CardContent sx={{ textAlign: 'center', p: 0 }}>
-                  <Box sx={{ mb: 2 }}>
+          <Grid container spacing={6}>
+            {features.map((feature, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Box sx={{ mb: 3 }}>
                     {feature.icon}
                   </Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                  <Typography 
+                    variant="h4" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      mb: 2,
+                      color: '#1D1D1F',
+                      fontSize: '1.5rem'
+                    }}
+                  >
                     {feature.title}
                   </Typography>
-                  <Typography variant="body1" sx={{ color: theme.palette.grey[600] }}>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: '#86868B',
+                      fontWeight: 400,
+                      fontSize: '1.1rem',
+                      lineHeight: 1.4
+                    }}
+                  >
                     {feature.description}
                   </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* Benefits Section */}
-      <Box sx={{ bgcolor: theme.palette.grey[50], py: 10 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Typography variant="h2" sx={{ fontWeight: 700, mb: 4 }}>
-                Why Choose OverdriveTMS?
-              </Typography>
-              <Box sx={{ mb: 4 }}>
-                {benefits.map((benefit, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <CheckCircle sx={{ color: theme.palette.primary.main, mr: 2 }} />
-                    <Typography variant="body1" sx={{ fontSize: '1.1rem' }}>
-                      {benefit}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-              <Button 
-                variant="contained" 
-                size="large"
-                onClick={onEnterApp}
-                sx={{ bgcolor: theme.palette.primary.main }}
-              >
-                Get Started Today
-              </Button>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ p: 4 }}>
-                <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>
-                  Ready to Transform Your Business?
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 3, color: theme.palette.grey[600] }}>
-                  Join thousands of trucking companies who have streamlined their operations with OverdriveTMS.
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Phone sx={{ mr: 2, color: theme.palette.primary.main }} />
-                    <Typography variant="body1">1-800-OVERDRIVE</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Email sx={{ mr: 2, color: theme.palette.primary.main }} />
-                    <Typography variant="body1">info@overdrivetms.com</Typography>
-                  </Box>
                 </Box>
-              </Card>
-            </Grid>
+              </Grid>
+            ))}
           </Grid>
         </Container>
       </Box>
 
+      {/* CTA Section */}
+      <Box sx={{ py: { xs: 8, md: 12 } }}>
+        <Container maxWidth="md">
+          <Box textAlign="center">
+            <Typography 
+              variant="h2" 
+              sx={{ 
+                fontSize: { xs: '2.5rem', md: '3.5rem' },
+                fontWeight: 600,
+                color: '#1D1D1F',
+                mb: 3,
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Ready to get started?
+            </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: '#86868B',
+                mb: 6,
+                fontWeight: 400,
+                lineHeight: 1.4
+              }}
+            >
+              Experience the future of fleet management today.
+            </Typography>
+            <Button 
+              variant="contained"
+              size="large"
+              onClick={onEnterApp}
+              sx={{ 
+                bgcolor: '#007AFF',
+                color: 'white',
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '1.1rem',
+                borderRadius: '25px',
+                py: 1.5,
+                px: 4,
+                boxShadow: 'none',
+                '&:hover': { 
+                  bgcolor: '#0056CC',
+                  boxShadow: 'none'
+                }
+              }}
+            >
+              Try Demo Now
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+
       {/* Footer */}
-      <Box sx={{ bgcolor: theme.palette.grey[900], color: 'white', py: 6 }}>
+      <Box sx={{ 
+        bgcolor: '#F5F5F7', 
+        borderTop: '1px solid #D2D2D7',
+        py: 6
+      }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <LocalShipping sx={{ mr: 1, fontSize: 32 }} />
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  OverdriveTMS
-                </Typography>
-              </Box>
-              <Typography variant="body1" sx={{ color: theme.palette.grey[300], mb: 2 }}>
-                The most comprehensive Transportation Management System for modern trucking companies.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Get Started
-              </Typography>
+          <Box textAlign="center">
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#86868B',
+                fontSize: '0.875rem'
+              }}
+            >
+              Copyright © 2024 OverdriveTMS Inc. All rights reserved.
+            </Typography>
+            <Box sx={{ mt: 2 }}>
               <Button 
-                variant="outlined" 
                 onClick={onEnterApp}
                 sx={{ 
-                  color: 'white', 
-                  borderColor: 'white',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                  color: '#007AFF',
+                  textTransform: 'none',
+                  fontWeight: 400,
+                  fontSize: '0.875rem',
+                  '&:hover': { bgcolor: 'rgba(0, 122, 255, 0.04)' }
                 }}
               >
-                Access TMS Dashboard
+                Access Dashboard
               </Button>
-            </Grid>
-          </Grid>
-          <Box sx={{ 
-            borderTop: `1px solid ${theme.palette.grey[700]}`, 
-            pt: 4, 
-            mt: 4, 
-            textAlign: 'center' 
-          }}>
-            <Typography variant="body2" sx={{ color: theme.palette.grey[400] }}>
-              © 2024 OverdriveTMS. All rights reserved.
-            </Typography>
+            </Box>
           </Box>
         </Container>
       </Box>
