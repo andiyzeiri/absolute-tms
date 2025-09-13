@@ -1,6 +1,6 @@
 [build]
   publish = "public"
-  command = "npm run build"
+  command = "cd client && npm install && npm run build && cd .. && cp -r client/build/* public/"
 
 [[redirects]]
   from = "/*"
@@ -8,7 +8,6 @@
   status = 200
 
 [build.environment]
-  REACT_APP_API_URL = "https://demo-mode-disabled"
-  REACT_APP_DEMO_MODE = "true"
+  REACT_APP_API_URL = "https://tms-prototype-production.up.railway.app"
   CI = "false"
   NODE_VERSION = "18"
