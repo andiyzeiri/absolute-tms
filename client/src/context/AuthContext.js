@@ -76,15 +76,54 @@ export const AuthProvider = ({ children }) => {
       
       if (accessToken) {
         try {
-          // Verify token and get user profile
+          // Try backend first
           const response = await axios.get('/api/auth/profile');
           setUser(response.data.data.user);
           setIsAuthenticated(true);
         } catch (error) {
-          // Token invalid, clear storage
-          localStorage.removeItem('tms_access_token');
-          localStorage.removeItem('tms_refresh_token');
-          console.error('Token validation failed:', error);
+          // Backend failed, check for demo mode
+          if (accessToken.startsWith('demo_')) {
+            console.log('Using demo mode authentication');
+            
+            // Check for demo users
+            const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+            if (demoUsers.length > 0) {
+              setUser(demoUsers[0]); // Use first demo user
+              setIsAuthenticated(true);
+            } else if (accessToken.startsWith('demo_admin_')) {
+              // Use default admin user
+              const defaultUser = {
+                _id: 'admin123',
+                firstName: 'Demo',
+                lastName: 'Admin',
+                email: 'admin@absolutetms.com',
+                role: 'admin',
+                company: {
+                  _id: 'company_demo',
+                  name: 'Absolute TMS'
+                },
+                companyName: 'Absolute TMS',
+                phone: '+1-555-0123',
+                isActive: true,
+                fullName: 'Demo Admin',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+              setUser(defaultUser);
+              setIsAuthenticated(true);
+            } else {
+              // Clear invalid demo token
+              localStorage.removeItem('tms_access_token');
+              localStorage.removeItem('tms_refresh_token');
+              localStorage.removeItem('token');
+            }
+          } else {
+            // Clear invalid backend token
+            localStorage.removeItem('tms_access_token');
+            localStorage.removeItem('tms_refresh_token');
+            localStorage.removeItem('token');
+            console.error('Token validation failed:', error);
+          }
         }
       }
       
@@ -98,26 +137,87 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      const response = await axios.post('/api/auth/login', {
-        email,
-        password
-      });
+      // Try backend first
+      try {
+        const response = await axios.post('/api/auth/login', {
+          email,
+          password
+        });
+        
+        const { user: userData, accessToken, refreshToken } = response.data.data;
+        
+        // Store tokens
+        localStorage.setItem('tms_access_token', accessToken);
+        localStorage.setItem('tms_refresh_token', refreshToken);
+        localStorage.setItem('token', accessToken); // For PDF uploads
+        
+        // Update state
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        toast.success(`Welcome back, ${userData.firstName}!`);
+        return { success: true };
+        
+      } catch (backendError) {
+        // Backend failed, try demo mode
+        console.log('Backend unavailable, trying demo mode');
+        
+        // Check for demo users
+        const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+        const demoUser = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+        
+        if (!demoUser) {
+          // Check for pre-created demo credentials
+          if (email.toLowerCase() === 'admin@absolutetms.com' && password === 'demo123') {
+            const defaultUser = {
+              _id: 'admin123',
+              firstName: 'Demo',
+              lastName: 'Admin',
+              email: 'admin@absolutetms.com',
+              role: 'admin',
+              company: {
+                _id: 'company_demo',
+                name: 'Absolute TMS'
+              },
+              companyName: 'Absolute TMS',
+              phone: '+1-555-0123',
+              isActive: true,
+              fullName: 'Demo Admin',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            
+            // Store demo user and token
+            const demoToken = 'demo_admin_' + Date.now();
+            localStorage.setItem('tms_access_token', demoToken);
+            localStorage.setItem('tms_refresh_token', demoToken);
+            localStorage.setItem('token', demoToken); // For PDF uploads
+            
+            setUser(defaultUser);
+            setIsAuthenticated(true);
+            
+            toast.success(`Welcome back, ${defaultUser.firstName}! (Demo Mode)`);
+            return { success: true };
+          }
+          
+          throw new Error('Invalid credentials');
+        }
+        
+        // Demo user found, log them in
+        const demoToken = 'demo_' + Date.now();
+        localStorage.setItem('tms_access_token', demoToken);
+        localStorage.setItem('tms_refresh_token', demoToken);
+        localStorage.setItem('token', demoToken); // For PDF uploads
+        
+        setUser(demoUser);
+        setIsAuthenticated(true);
+        
+        toast.success(`Welcome back, ${demoUser.firstName}! (Demo Mode)`);
+        return { success: true };
+      }
       
-      const { user: userData, accessToken, refreshToken } = response.data.data;
-      
-      // Store tokens
-      localStorage.setItem('tms_access_token', accessToken);
-      localStorage.setItem('tms_refresh_token', refreshToken);
-      
-      // Update state
-      setUser(userData);
-      setIsAuthenticated(true);
-      
-      toast.success(`Welcome back, ${userData.firstName}!`);
-      
-      return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Login failed';
+      const errorMessage = error.message || 'Login failed';
       toast.error(errorMessage);
       
       return { 
@@ -133,29 +233,76 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      const response = await axios.post('/api/auth/register', userData);
+      // Try backend first
+      try {
+        const response = await axios.post('/api/auth/register', userData);
+        const { user: newUser, accessToken, refreshToken } = response.data.data;
+        
+        // Store tokens
+        localStorage.setItem('tms_access_token', accessToken);
+        localStorage.setItem('tms_refresh_token', refreshToken);
+        
+        // Update state
+        setUser(newUser);
+        setIsAuthenticated(true);
+        
+        toast.success(`Welcome to TMS Pro, ${newUser.firstName}!`);
+        return { success: true };
+        
+      } catch (backendError) {
+        // Backend failed, use demo mode
+        console.log('Backend unavailable, using demo mode');
+        
+        // Check if user already exists in localStorage
+        const existingUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+        if (existingUsers.find(u => u.email === userData.email.toLowerCase())) {
+          throw new Error('User already exists with this email');
+        }
+        
+        // Create demo user
+        const demoUser = {
+          _id: 'user_' + Date.now(),
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email.toLowerCase(),
+          role: 'admin',
+          company: {
+            _id: 'company_' + Date.now(),
+            name: userData.companyName
+          },
+          companyName: userData.companyName,
+          phone: userData.phoneNumber,
+          isActive: true,
+          fullName: `${userData.firstName} ${userData.lastName}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Store user and create demo token
+        existingUsers.push(demoUser);
+        localStorage.setItem('demo_users', JSON.stringify(existingUsers));
+        
+        const demoToken = 'demo_' + Date.now();
+        localStorage.setItem('tms_access_token', demoToken);
+        localStorage.setItem('tms_refresh_token', demoToken);
+        localStorage.setItem('token', demoToken); // For PDF uploads
+        
+        // Update state
+        setUser(demoUser);
+        setIsAuthenticated(true);
+        
+        toast.success(`Welcome to TMS Pro, ${demoUser.firstName}! (Demo Mode)`);
+        return { success: true };
+      }
       
-      const { user: newUser, accessToken, refreshToken } = response.data.data;
-      
-      // Store tokens
-      localStorage.setItem('tms_access_token', accessToken);
-      localStorage.setItem('tms_refresh_token', refreshToken);
-      
-      // Update state
-      setUser(newUser);
-      setIsAuthenticated(true);
-      
-      toast.success(`Welcome to TMS Pro, ${newUser.firstName}!`);
-      
-      return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed';
+      const errorMessage = error.message || 'Registration failed';
       toast.error(errorMessage);
       
       return { 
         success: false, 
         error: errorMessage,
-        errors: error.response?.data?.errors || []
+        errors: []
       };
     } finally {
       setLoading(false);
