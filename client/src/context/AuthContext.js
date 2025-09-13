@@ -137,30 +137,37 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Try backend first
-      try {
-        const response = await axios.post('/api/auth/login', {
-          email,
-          password
-        });
-        
-        const { user: userData, accessToken, refreshToken } = response.data.data;
-        
-        // Store tokens
-        localStorage.setItem('tms_access_token', accessToken);
-        localStorage.setItem('tms_refresh_token', refreshToken);
-        localStorage.setItem('token', accessToken); // For PDF uploads
-        
-        // Update state
-        setUser(userData);
-        setIsAuthenticated(true);
-        
-        toast.success(`Welcome back, ${userData.firstName}!`);
-        return { success: true };
-        
-      } catch (backendError) {
-        // Backend failed, try demo mode
-        console.log('Backend unavailable, trying demo mode');
+      // Check if we're in demo mode
+      const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true' || process.env.REACT_APP_API_URL === 'https://demo-mode-disabled';
+      
+      if (!isDemoMode) {
+        // Try backend first
+        try {
+          const response = await axios.post('/api/auth/login', {
+            email,
+            password
+          });
+          
+          const { user: userData, accessToken, refreshToken } = response.data.data;
+          
+          // Store tokens
+          localStorage.setItem('tms_access_token', accessToken);
+          localStorage.setItem('tms_refresh_token', refreshToken);
+          localStorage.setItem('token', accessToken); // For PDF uploads
+          
+          // Update state
+          setUser(userData);
+          setIsAuthenticated(true);
+          
+          toast.success(`Welcome back, ${userData.firstName}!`);
+          return { success: true };
+          
+        } catch (backendError) {
+          // Backend failed, fall through to demo mode
+          console.log('Backend unavailable, trying demo mode');
+        }
+      } else {
+        console.log('Demo mode enabled, skipping backend');
         
         // Check for demo users
         const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
@@ -233,25 +240,32 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      // Try backend first
-      try {
-        const response = await axios.post('/api/auth/register', userData);
-        const { user: newUser, accessToken, refreshToken } = response.data.data;
-        
-        // Store tokens
-        localStorage.setItem('tms_access_token', accessToken);
-        localStorage.setItem('tms_refresh_token', refreshToken);
-        
-        // Update state
-        setUser(newUser);
-        setIsAuthenticated(true);
-        
-        toast.success(`Welcome to TMS Pro, ${newUser.firstName}!`);
-        return { success: true };
-        
-      } catch (backendError) {
-        // Backend failed, use demo mode
-        console.log('Backend unavailable, using demo mode');
+      // Check if we're in demo mode
+      const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true' || process.env.REACT_APP_API_URL === 'https://demo-mode-disabled';
+      
+      if (!isDemoMode) {
+        // Try backend first
+        try {
+          const response = await axios.post('/api/auth/register', userData);
+          const { user: newUser, accessToken, refreshToken } = response.data.data;
+          
+          // Store tokens
+          localStorage.setItem('tms_access_token', accessToken);
+          localStorage.setItem('tms_refresh_token', refreshToken);
+          
+          // Update state
+          setUser(newUser);
+          setIsAuthenticated(true);
+          
+          toast.success(`Welcome to TMS Pro, ${newUser.firstName}!`);
+          return { success: true };
+          
+        } catch (backendError) {
+          // Backend failed, fall through to demo mode
+          console.log('Backend unavailable, using demo mode');
+        }
+      } else {
+        console.log('Demo mode enabled, skipping backend');
         
         // Check if user already exists in localStorage
         const existingUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
