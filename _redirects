@@ -1,1 +1,5 @@
+# Clear any old redirects to /lander  
+/lander /index.html 200!
+
+# Handle SPA routing - catch all
 /* /index.html 200
