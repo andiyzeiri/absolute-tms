@@ -529,9 +529,15 @@ const LoadManagement = () => {
       formData.append('file', selectedFile);
       formData.append('type', currentUpload.type);
 
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
       // Make actual API call to upload the file
       const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentUpload.loadId), {
         method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
         body: formData,
       });
 
@@ -591,10 +597,18 @@ const LoadManagement = () => {
     try {
       setLoading(true);
       
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
       // Make API call to delete the PDF
       const response = await fetch(
         API_ENDPOINTS.LOAD_DELETE_FILE(currentPdfManager.loadId, pdfId, currentPdfManager.type),
-        { method: 'DELETE' }
+        { 
+          method: 'DELETE',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` })
+          }
+        }
       );
 
       if (!response.ok) {
@@ -643,17 +657,35 @@ const LoadManagement = () => {
       formData.append('file', selectedFile);
       formData.append('type', currentPdfManager.type);
 
+      // Get auth token
+      const token = localStorage.getItem('token');
+      console.log('Upload token:', token ? 'exists' : 'missing');
+      console.log('Upload URL:', API_ENDPOINTS.LOAD_UPLOAD(currentPdfManager.loadId));
+      
+      if (!token) {
+        throw new Error('Not authenticated - please log in with admin@absolutetms.com / demo123');
+      }
+      
       // Make actual API call to upload the file
       const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentPdfManager.loadId), {
         method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
+        throw new Error(`Upload failed: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Upload result:', result);
       const fileInfo = result.data.file;
 
       // Update the load with file info in localStorage
@@ -772,7 +804,7 @@ const LoadManagement = () => {
         <Card sx={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
           <CardContent sx={{ p: 3 }}>
             <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   placeholder="Search loads..."
@@ -788,7 +820,7 @@ const LoadManagement = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Status Filter</InputLabel>
                   <Select
@@ -803,32 +835,6 @@ const LoadManagement = () => {
                     <MenuItem value="delayed">Delayed</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid item xs={12} md={5}>
-                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<FilterList />}
-                    sx={{ 
-                      borderColor: '#E5E7EB',
-                      color: '#374151',
-                      '&:hover': { borderColor: '#D1D5DB' }
-                    }}
-                  >
-                    More Filters
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Download />}
-                    sx={{ 
-                      borderColor: '#E5E7EB',
-                      color: '#374151',
-                      '&:hover': { borderColor: '#D1D5DB' }
-                    }}
-                  >
-                    Export
-                  </Button>
-                </Box>
               </Grid>
             </Grid>
           </CardContent>

@@ -13,10 +13,10 @@ require('dotenv').config();
 const connectDB = require('./config/database');
 const { demoStats } = require('./utils/demoData');
 
-// Use demo authentication for immediate functionality
-console.log('🔄 Using demo authentication for immediate launch');
-const authRoutes = require('./routes/demoAuth');
-const { authenticateToken } = require('./middleware/demoAuth');
+// Use real authentication with MongoDB
+console.log('🔄 Using real authentication with MongoDB');
+const authRoutes = require('./routes/auth');
+const { authenticateToken } = require('./middleware/auth');
 
 // Connect to MongoDB in background (optional)
 connectDB().catch(() => {
@@ -104,6 +104,10 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+
+// User management routes
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
 
 // Driver routes (for real data)
 const driverRoutes = require('./routes/drivers');

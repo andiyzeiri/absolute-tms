@@ -1,6 +1,6 @@
 [build]
-  publish = "."
-  command = "echo 'Using pre-built files from repository'"
+  publish = "public"
+  command = "npm run build"
 
 [[redirects]]
   from = "/api/*"
@@ -22,3 +22,4 @@
 [build.environment]
   REACT_APP_API_URL = "https://tms-prototype-production.up.railway.app"
   CI = "false"
+  NODE_VERSION = "18"

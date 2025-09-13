@@ -21,7 +21,6 @@ import {
   Description,
   Settings,
   Notifications,
-  Search,
   Business,
   Group,
   Payment,
@@ -81,51 +80,17 @@ const Sidebar = ({ currentPage, onPageChange, user }) => {
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', lineHeight: 1 }}>
-              Absolute TMS
+              {user?.company?.name || 'Your Company'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
               Transportation Management
             </Typography>
           </Box>
         </Box>
-
-        {/* Search Bar */}
-        <Box sx={{ 
-          position: 'relative',
-          mb: 2
-        }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            bgcolor: '#F9FAFB',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            px: 2,
-            py: 1.5,
-            '&:hover': {
-              borderColor: '#D1D5DB'
-            }
-          }}>
-            <Search sx={{ color: '#9CA3AF', mr: 1, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ color: '#9CA3AF', flex: 1 }}>
-              Search...
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              color: '#9CA3AF', 
-              bgcolor: '#E5E7EB',
-              px: 1,
-              py: 0.5,
-              borderRadius: '4px',
-              fontSize: '0.75rem'
-            }}>
-              ⌘K
-            </Typography>
-          </Box>
-        </Box>
       </Box>
 
       {/* Navigation Menu */}
-      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
         <Box sx={{ px: 2, py: 2 }}>
           <Typography variant="caption" sx={{ 
             color: '#9CA3AF', 

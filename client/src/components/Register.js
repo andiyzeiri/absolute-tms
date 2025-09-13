@@ -26,7 +26,6 @@ const Register = ({ onSwitchToLogin }) => {
     confirmPassword: '',
     companyName: '',
     phoneNumber: '',
-    role: 'admin'
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -81,8 +80,7 @@ const Register = ({ onSwitchToLogin }) => {
         email: formData.email,
         password: formData.password,
         companyName: formData.companyName,
-        phoneNumber: formData.phoneNumber,
-        role: formData.role
+        phoneNumber: formData.phoneNumber
       });
 
       if (!result.success) {
@@ -118,10 +116,10 @@ const Register = ({ onSwitchToLogin }) => {
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <LocalShipping sx={{ fontSize: 48, color: '#007AFF', mb: 2 }} />
               <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#1D1D1F', fontWeight: 600 }}>
-                Join OverdriveTMS
+                Create Admin Account
               </Typography>
               <Typography variant="body1" color="#86868B">
-                Start managing your fleet with the future of transportation technology
+                Set up your company's TMS and create the main admin account
               </Typography>
             </Box>
 
@@ -191,7 +189,7 @@ const Register = ({ onSwitchToLogin }) => {
                     value={formData.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     error={!!errors.password}
-                    helperText={errors.password}
+                    helperText={errors.password || 'Must be at least 6 characters long'}
                     required
                     InputProps={{
                       endAdornment: (
@@ -232,17 +230,9 @@ const Register = ({ onSwitchToLogin }) => {
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Account Type"
-                    value={formData.role}
-                    onChange={(e) => handleChange('role', e.target.value)}
-                  >
-                    <MenuItem value="admin">Fleet Manager</MenuItem>
-                    <MenuItem value="dispatcher">Dispatcher</MenuItem>
-                    <MenuItem value="driver">Driver</MenuItem>
-                  </TextField>
+                  <Typography variant="body2" color="#86868B" sx={{ textAlign: 'center', p: 2, bgcolor: '#F5F5F7', borderRadius: 2 }}>
+                    This will create an admin account for your company. You can invite other team members after registration.
+                  </Typography>
                 </Grid>
                 <Grid item xs={12}>
                   <Button

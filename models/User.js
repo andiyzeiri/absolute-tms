@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\+?[\d\s\-\(\)]+$/, 'Please provide a valid phone number']
   },
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: [true, 'Company is required']
+  },
   companyName: {
     type: String,
     trim: true,
@@ -96,6 +101,8 @@ userSchema.virtual('fullName').get(function() {
 // Index for performance
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ company: 1 });
+userSchema.index({ company: 1, role: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

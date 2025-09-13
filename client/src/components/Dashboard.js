@@ -26,9 +26,6 @@ import {
   Receipt,
   TrendingUp,
   MoreVert,
-  Add,
-  FilterList,
-  Download,
   Timeline,
   CheckCircle,
   Schedule,
@@ -341,40 +338,6 @@ const Dashboard = () => {
               Dashboard
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              sx={{ 
-                borderColor: '#E5E7EB',
-                color: '#374151',
-                '&:hover': { borderColor: '#D1D5DB' }
-              }}
-            >
-              Filter
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Download />}
-              sx={{ 
-                borderColor: '#E5E7EB',
-                color: '#374151',
-                '&:hover': { borderColor: '#D1D5DB' }
-              }}
-            >
-              Export
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              sx={{ 
-                bgcolor: '#4F46E5',
-                '&:hover': { bgcolor: '#3730A3' }
-              }}
-            >
-              New Load
-            </Button>
-          </Box>
         </Box>
       </Box>
 
@@ -409,9 +372,132 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Driver Tables */}
+      {/* Company Stats and Driver Tables */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        {/* Company Stats Column */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ 
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+            height: 'fit-content'
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827', mb: 3 }}>
+                Company Overview
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                {/* Number of Drivers */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <People sx={{ color: '#4F46E5', mr: 1.5, fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                      Total Drivers
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                    {stats.activeDrivers}
+                  </Typography>
+                </Box>
+
+                {/* Number of Trucks */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LocalShipping sx={{ color: '#10B981', mr: 1.5, fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                      Total Trucks
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                    {stats.totalVehicles}
+                  </Typography>
+                </Box>
+
+                {/* Number of Trailers */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <DirectionsCar sx={{ color: '#F59E0B', mr: 1.5, fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                      Total Trailers
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                    {Math.round(stats.totalVehicles * 1.2)}
+                  </Typography>
+                </Box>
+
+                {/* Total Loads */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Receipt sx={{ color: '#EF4444', mr: 1.5, fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                      Total Loads
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                    {stats.activeTrips}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ borderTop: '1px solid #E5E7EB', pt: 2.5, mt: 1 }}>
+                  {/* Total Miles */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Timeline sx={{ color: '#8B5CF6', mr: 1.5, fontSize: 20 }} />
+                      <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                        Total Miles
+                      </Typography>
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                      {(stats.activeTrips * 1250).toLocaleString()}
+                    </Typography>
+                  </Box>
+
+                  {/* Average MPG */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TrendingUp sx={{ color: '#06B6D4', mr: 1.5, fontSize: 20 }} />
+                      <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 500 }}>
+                        Average MPG
+                      </Typography>
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>
+                      6.8
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Performance Summary */}
+                <Box sx={{ 
+                  mt: 2, 
+                  p: 2, 
+                  bgcolor: '#F0FDF4', 
+                  borderRadius: 1, 
+                  border: '1px solid #D1FAE5' 
+                }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#059669', 
+                    fontWeight: 600, 
+                    textAlign: 'center',
+                    fontSize: '0.875rem'
+                  }}>
+                    Fleet Efficiency: 92%
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#6B7280', 
+                    textAlign: 'center',
+                    display: 'block',
+                    mt: 0.5
+                  }}>
+                    Above industry average
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
           <Card sx={{ 
             border: '1px solid #E5E7EB',
             boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
@@ -424,10 +510,10 @@ const Dashboard = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Driver Name</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Gross</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Profit</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>%</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Driver Name</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Gross</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Profit</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>%</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -435,14 +521,14 @@ const Dashboard = () => {
                       const profitMargin = ((driver.profit / driver.yearlyGross) * 100);
                       return (
                         <TableRow key={index} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
-                          <TableCell sx={{ color: '#111827', fontWeight: 500, border: '1px solid #E5E7EB' }}>{driver.name}</TableCell>
-                          <TableCell sx={{ color: '#111827', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: '#111827', fontWeight: 500, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>{driver.name}</TableCell>
+                          <TableCell sx={{ color: '#111827', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             ${driver.yearlyGross.toLocaleString()}
                           </TableCell>
-                          <TableCell sx={{ color: driver.profit >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: driver.profit >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             ${driver.profit.toLocaleString()}
                           </TableCell>
-                          <TableCell sx={{ color: profitMargin >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: profitMargin >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             {profitMargin.toFixed(1)}%
                           </TableCell>
                         </TableRow>
@@ -493,7 +579,7 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ 
             border: '1px solid #E5E7EB',
             boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
@@ -506,10 +592,10 @@ const Dashboard = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Driver Name</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Gross</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>Profit</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB' }}>%</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Driver Name</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Gross</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>Profit</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#374151', border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>%</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -517,14 +603,14 @@ const Dashboard = () => {
                       const profitMargin = ((driver.profit / driver.yearlyGross) * 100);
                       return (
                         <TableRow key={index} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
-                          <TableCell sx={{ color: '#111827', fontWeight: 500, border: '1px solid #E5E7EB' }}>{driver.name}</TableCell>
-                          <TableCell sx={{ color: '#111827', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: '#111827', fontWeight: 500, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>{driver.name}</TableCell>
+                          <TableCell sx={{ color: '#111827', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             ${driver.yearlyGross.toLocaleString()}
                           </TableCell>
-                          <TableCell sx={{ color: driver.profit >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: driver.profit >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             ${driver.profit.toLocaleString()}
                           </TableCell>
-                          <TableCell sx={{ color: profitMargin >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB' }}>
+                          <TableCell sx={{ color: profitMargin >= 0 ? '#059669' : '#DC2626', fontWeight: 600, border: '1px solid #E5E7EB', fontSize: '0.75rem' }}>
                             {profitMargin.toFixed(1)}%
                           </TableCell>
                         </TableRow>

@@ -4,6 +4,10 @@ const Load = require('../models/Load');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { authenticateToken } = require('../middleware/auth');
+
+// All routes require authentication
+router.use(authenticateToken);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -383,7 +387,7 @@ router.post('/:id/upload', upload.single('file'), async (req, res) => {
       path: `/uploads/${req.file.filename}`,
       uploadedAt: new Date(),
       size: req.file.size,
-      _id: require('mongoose').Types.ObjectId().toString()
+      _id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
     };
     
     // Try to find the load in database, but don't fail if not found (demo mode)

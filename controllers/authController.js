@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Company = require('../models/Company');
 const JWTUtils = require('../utils/jwt');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -6,7 +7,15 @@ const crypto = require('crypto');
 class AuthController {
   static async register(req, res) {
     try {
-      const { firstName, lastName, email, password, role = 'driver', phone, phoneNumber, companyName } = req.body;
+      const { firstName, lastName, email, password, role = 'admin', phone, phoneNumber, companyName } = req.body;
+
+      // Only allow admin registration for new companies
+      if (role !== 'admin') {
+        return res.status(400).json({
+          success: false,
+          message: 'Only admin accounts can be created through registration. Other users must be invited by an admin.'
+        });
+      }
 
       // Check if user already exists
       const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -17,34 +26,49 @@ class AuthController {
         });
       }
 
-      // Create new user
+      // Create new company first
+      const company = new Company({
+        name: companyName,
+        email: email.toLowerCase(),
+        phone: phone || phoneNumber,
+        createdBy: null // Will be updated after user creation
+      });
+
+      const savedCompany = await company.save();
+
+      // Create admin user
       const user = new User({
         firstName,
         lastName,
         email: email.toLowerCase(),
         password,
-        role,
+        role: 'admin',
         phone: phone || phoneNumber,
         phoneNumber,
         companyName,
+        company: savedCompany._id,
         emailVerificationToken: JWTUtils.generateEmailVerificationToken()
       });
 
-      await user.save();
+      const savedUser = await user.save();
+
+      // Update company with the created user
+      savedCompany.createdBy = savedUser._id;
+      await savedCompany.save();
 
       // Generate tokens
       const { accessToken, refreshToken } = JWTUtils.generateTokens({
-        userId: user._id,
-        email: user.email,
-        role: user.role
+        userId: savedUser._id,
+        email: savedUser.email,
+        role: savedUser.role
       });
 
       // Update user with refresh token
-      user.refreshToken = refreshToken;
-      await user.save();
+      savedUser.refreshToken = refreshToken;
+      await savedUser.save();
 
       // Remove password from response
-      const userResponse = user.toObject();
+      const userResponse = savedUser.toObject();
       delete userResponse.password;
 
       res.status(201).json({
