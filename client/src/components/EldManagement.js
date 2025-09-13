@@ -87,26 +87,10 @@ const EldManagement = () => {
   // Alerts
   const [alert, setAlert] = useState({ show: false, message: '', severity: 'info' });
 
-  // Load initial data
-  useEffect(() => {
-    loadEldData();
-    loadServiceStatus();
-  }, []);
-
-  // Reload data when filters or pagination change
-  useEffect(() => {
-    if (activeTab === 0) loadDriverLogs();
-    else if (activeTab === 1) loadEldDevices();
-    else if (activeTab === 2) loadComplianceReport();
-  }, [activeTab, page, filters, loadEldData, loadDriverLogs, loadComplianceReport]);
-
-  const loadEldData = async () => {
-    await Promise.all([
-      loadDriverLogs(),
-      loadEldDevices(),
-      loadComplianceReport(),
-      loadServiceStatus()
-    ]);
+  // Utility functions
+  const showAlert = (message, severity = 'info') => {
+    setAlert({ show: true, message, severity });
+    setTimeout(() => setAlert({ show: false, message: '', severity: 'info' }), 5000);
   };
 
   const loadDriverLogs = async () => {
@@ -196,6 +180,33 @@ const EldManagement = () => {
     }
   };
 
+  const loadEldData = async () => {
+    await Promise.all([
+      loadDriverLogs(),
+      loadEldDevices(),
+      loadComplianceReport(),
+      loadServiceStatus()
+    ]);
+  };
+
+  // Reload data when filters or pagination change
+  useEffect(() => {
+    const loadTabData = () => {
+      if (activeTab === 0) loadDriverLogs();
+      else if (activeTab === 1) loadEldDevices();
+      else if (activeTab === 2) loadComplianceReport();
+    };
+    
+    loadTabData();
+  }, [activeTab, page, filters]); // Remove function dependencies to avoid circular deps
+
+  // Load initial data
+  useEffect(() => {
+    loadEldData();
+    loadServiceStatus();
+  }, []);
+
+
   const testEldConnection = async () => {
     try {
       setTestingConnection(true);
@@ -261,12 +272,6 @@ const EldManagement = () => {
       console.error('Error approving log:', error);
       showAlert('Failed to update log status', 'error');
     }
-  };
-
-  // Utility functions
-  const showAlert = (message, severity = 'info') => {
-    setAlert({ show: true, message, severity });
-    setTimeout(() => setAlert({ show: false, message: '', severity: 'info' }), 5000);
   };
 
   const formatTime = (minutes) => {
