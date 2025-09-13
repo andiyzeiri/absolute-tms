@@ -666,53 +666,7 @@ const LoadManagement = () => {
         throw new Error('Not authenticated - please log in with admin@absolutetms.com / demo123');
       }
       
-      // Check if we're in demo mode
-      const FORCE_DEMO_MODE = true; // Force demo mode for deployment
-      const isDemoMode = FORCE_DEMO_MODE || 
-                         process.env.REACT_APP_DEMO_MODE === 'true' || 
-                         process.env.REACT_APP_API_URL === 'https://demo-mode-disabled' ||
-                         token.startsWith('demo_');
-      
-      if (isDemoMode) {
-        console.log('Demo mode: Simulating PDF upload');
-        
-        // Simulate successful upload in demo mode
-        const fileInfo = {
-          filename: selectedFile.name,
-          path: `/uploads/demo-${Date.now()}-${selectedFile.name}`,
-          uploadedAt: new Date().toISOString(),
-          size: selectedFile.size,
-          _id: 'demo_' + Date.now().toString() + Math.random().toString(36).substr(2, 9)
-        };
-        
-        // Simulate upload delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Update the load with file info in localStorage
-        const updatedLoads = loads.map(load => {
-          if (load.id === currentPdfManager.loadId) {
-            return {
-              ...load,
-              [currentPdfManager.type]: [...(load[currentPdfManager.type] || []), fileInfo]
-            };
-          }
-          return load;
-        });
-        
-        setLoads(updatedLoads);
-        saveLoadsToStorage(updatedLoads);
-        
-        setSnackbar({ 
-          open: true, 
-          message: `${currentPdfManager.type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully! (Demo Mode)`, 
-          severity: 'success' 
-        });
-        
-        setSelectedFile(null);
-        return;
-      }
-      
-      // Make actual API call to upload the file (when not in demo mode)
+      // Make API call to upload the file
       const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentPdfManager.loadId), {
         method: 'POST',
         headers: {
