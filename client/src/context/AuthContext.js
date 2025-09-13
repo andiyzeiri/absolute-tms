@@ -118,7 +118,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
       
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      let errorMessage = 'Login failed';
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('ERR_FAILED')) {
+        errorMessage = 'Backend server is not available. Please contact support or try again later.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Backend service not found. Please contact support.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('Login error:', error);
       toast.error(errorMessage);
       
       return { 
@@ -150,7 +162,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
       
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      let errorMessage = 'Registration failed';
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('ERR_FAILED')) {
+        errorMessage = 'Backend server is not available. Please contact support or try again later.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Backend service not found. Please contact support.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('Registration error:', error);
       toast.error(errorMessage);
       
       return { 
