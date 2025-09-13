@@ -8,6 +8,6 @@
   status = 200
 
 [build.environment]
-  REACT_APP_API_URL = "https://your-lambda-api.execute-api.us-east-1.amazonaws.com/prod"
+  REACT_APP_API_URL = "https://35izoi3ebh.execute-api.us-east-1.amazonaws.com/prod"
   CI = "false"
   NODE_VERSION = "18"
