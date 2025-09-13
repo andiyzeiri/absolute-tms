@@ -11,7 +11,10 @@
     "dev": "concurrently \"npm run server-dev\" \"npm run client\"",
     "build": "cd client && npm run build && cp -r build/* ../public/",
     "setup": "npm install && cd client && npm install",
-    "demo": "node start.js"
+    "demo": "node start.js",
+    "deploy:aws": "serverless deploy",
+    "deploy:aws-local": "serverless offline",
+    "deploy:eb": "eb deploy"
   },
   "keywords": [
     "TMS",
@@ -48,6 +51,13 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.0",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "serverless": "^3.38.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-http": "^3.2.0",
+    "serverless-offline": "^13.7.0",
+    "serverless-webpack": "^5.15.3",
+    "webpack": "^5.101.3",
+    "webpack-node-externals": "^3.0.0"
   }
 }

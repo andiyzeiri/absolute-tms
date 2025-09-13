@@ -1,0 +1,86 @@
+service: tms-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  timeout: 30
+  memorySize: 512
+  environment:
+    NODE_ENV: production
+    MONGODB_URI: mongodb+srv://andi_db_user:mfVEIDLWYj04uBPU@cluster0.cnhkiiz.mongodb.net/tms?retryWrites=true&w=majority&appName=Cluster0
+    JWT_SECRET: your_super_secure_jwt_secret_key_here_2024
+    JWT_EXPIRES_IN: 24h
+    REFRESH_TOKEN_SECRET: your_refresh_token_secret_key_here_2024
+    REFRESH_TOKEN_EXPIRES_IN: 7d
+    CORS_ORIGIN: https://overdrivetms2025.netlify.app,http://localhost:3000
+    MAX_FILE_SIZE: 10485760
+    RATE_LIMIT_WINDOW: 15
+    RATE_LIMIT_MAX_REQUESTS: 100
+    BCRYPT_SALT_ROUNDS: 12
+    TZ: America/New_York
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource: "arn:aws:s3:::absolute-tms-uploads/*"
+
+functions:
+  api:
+    handler: lambda.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors:
+            origin: ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+            headers:
+              - Content-Type
+              - Authorization
+              - Accept
+            allowCredentials: true
+      - http:
+          path: /
+          method: ANY
+          cors:
+            origin: ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+            headers:
+              - Content-Type
+              - Authorization
+              - Accept
+            allowCredentials: true
+
+resources:
+  Resources:
+    FileUploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: absolute-tms-uploads-${self:provider.stage}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+              AllowedOrigins:
+                - ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+                - http://localhost:3000
+              MaxAge: 3600
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+custom:
+  serverless-offline:
+    port: 5000

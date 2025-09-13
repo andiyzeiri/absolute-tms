@@ -322,4 +322,5 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { app, server, io };
+// Export the app for serverless deployment
+module.exports = app;

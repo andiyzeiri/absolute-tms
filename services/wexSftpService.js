@@ -24,8 +24,8 @@ class WexSftpService {
     // File processing settings
     this.settings = {
       remotePath: process.env.WEX_REMOTE_PATH || '/outbound',
-      localPath: path.join(__dirname, '..', 'temp', 'wex'),
-      archivePath: path.join(__dirname, '..', 'temp', 'wex', 'processed'),
+      localPath: path.join('/tmp', 'wex'),
+      archivePath: path.join('/tmp', 'wex', 'processed'),
       filePattern: /^.*\.(csv|CSV)$/,
       maxFileAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     };

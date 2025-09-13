@@ -1,0 +1,53 @@
+# Serverless specific
+.serverless/**
+.serverless_plugins/**
+
+# Development dependencies
+node_modules/nodemon/**
+node_modules/jest/**
+node_modules/@types/**
+node_modules/typescript/**
+node_modules/eslint/**
+node_modules/prettier/**
+
+# Frontend client folder
+client/**
+
+# Development files
+.env.local
+.env.development
+.env.test
+*.test.js
+*.spec.js
+test/**
+tests/**
+coverage/**
+
+# Documentation
+README.md
+*.md
+docs/**
+
+# Git
+.git/**
+.gitignore
+
+# IDE
+.vscode/**
+.idea/**
+*.swp
+*.swo
+
+# Logs
+logs/**
+*.log
+npm-debug.log*
+
+# Build artifacts
+dist/**
+build/**
+tmp/**
+
+# OS
+.DS_Store
+Thumbs.db

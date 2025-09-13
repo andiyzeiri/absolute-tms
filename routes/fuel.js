@@ -9,7 +9,7 @@ const { body, query, validationResult } = require('express-validator');
 
 // Configure multer for file uploads
 const upload = multer({
-  dest: 'temp/uploads/',
+  dest: '/tmp/uploads/',
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
