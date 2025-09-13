@@ -667,7 +667,9 @@ const LoadManagement = () => {
       }
       
       // Check if we're in demo mode
-      const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true' || 
+      const FORCE_DEMO_MODE = true; // Force demo mode for deployment
+      const isDemoMode = FORCE_DEMO_MODE || 
+                         process.env.REACT_APP_DEMO_MODE === 'true' || 
                          process.env.REACT_APP_API_URL === 'https://demo-mode-disabled' ||
                          token.startsWith('demo_');
       

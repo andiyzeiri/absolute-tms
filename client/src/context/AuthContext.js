@@ -12,10 +12,20 @@ export const useAuth = () => {
   return context;
 };
 
-// Configure axios defaults
+// Configure axios defaults - disable for demo mode
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.timeout = 10000;
+// FORCE DEMO MODE FOR DEPLOYMENT - Remove this line only when backend is available
+const FORCE_DEMO_MODE = true;
+const isDemoMode = FORCE_DEMO_MODE || process.env.REACT_APP_DEMO_MODE === 'true' || API_BASE_URL === 'https://demo-mode-disabled';
+
+if (!isDemoMode) {
+  axios.defaults.baseURL = API_BASE_URL;
+  axios.defaults.timeout = 10000;
+} else {
+  // In demo mode, set up axios to fail immediately for any request
+  axios.defaults.baseURL = 'https://demo-mode-no-requests';
+  axios.defaults.timeout = 1;
+}
 
 // Request interceptor to add auth token
 axios.interceptors.request.use(
