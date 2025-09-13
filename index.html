@@ -1,1 +1,68 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="icon" href="/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#000000"/><meta name="description" content="Absolute TMS - Advanced Transportation Management System"/><link rel="apple-touch-icon" href="/logo192.png"/><link rel="manifest" href="/manifest.json"/><title>Absolute TMS</title><script defer="defer" src="/static/js/main.a683bb20.js"></script><link href="/static/css/main.4efb37a3.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overdrive TMS - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #0056CC;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚛 Overdrive TMS</h1>
+        <p>Transportation Management System - Coming Soon</p>
+        <p><strong>Status:</strong> Testing deployment configuration</p>
+        <p><strong>Time:</strong> <span id="time"></span></p>
+        <button class="btn" onclick="location.reload()">Refresh</button>
+    </div>
+    
+    <script>
+        // Update time every second to prove this is the new version
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Log to console to help debug
+        console.log('New deployment loaded at:', new Date().toISOString());
+        console.log('No redirect - serving correct index.html');
+    </script>
+</body>
+</html>
