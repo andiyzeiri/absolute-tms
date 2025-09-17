@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
 const vehicleSchema = new mongoose.Schema({
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true
+  },
   vehicleNumber: {
     type: String,
     required: true,
-    unique: true,
     uppercase: true
   },
   make: {
@@ -193,9 +197,10 @@ vehicleSchema.pre('save', function(next) {
 });
 
 // Indexes
-vehicleSchema.index({ vehicleNumber: 1 });
+vehicleSchema.index({ company: 1, vehicleNumber: 1 }, { unique: true });
 vehicleSchema.index({ status: 1 });
 vehicleSchema.index({ assignedDriver: 1 });
 vehicleSchema.index({ 'registration.plateNumber': 1 });
+vehicleSchema.index({ company: 1 });
 
 module.exports = mongoose.model('Vehicle', vehicleSchema);

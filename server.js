@@ -24,6 +24,12 @@ connectDB().catch(() => {
 });
 
 const app = express();
+
+// Trust proxy for AWS Lambda/API Gateway
+if (process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR) {
+  app.set('trust proxy', true);
+}
+
 const server = http.createServer(app);
 
 // Socket.IO setup with authentication
@@ -80,21 +86,31 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression
 app.use(compression());
 
-// CORS
+// CORS - More permissive configuration for development
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',');
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV !== 'production' && origin && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     }
+
+    console.log('CORS blocked origin:', origin);
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Serve static files from public directory
@@ -133,6 +149,10 @@ app.use('/api/fuel', fuelRoutes);
 // ELD routes (for ELD web token integration)
 const eldRoutes = require('./routes/eld');
 app.use('/api/eld', eldRoutes);
+
+// Vehicle routes (for fleet management)
+const vehicleRoutes = require('./routes/vehicles');
+app.use('/api/vehicles', vehicleRoutes);
 
 // Dashboard stats endpoint (fallback to demo data)
 app.get('/api/dashboard/stats', (req, res) => {

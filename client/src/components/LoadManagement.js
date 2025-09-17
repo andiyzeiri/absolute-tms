@@ -82,6 +82,7 @@ const LoadManagement = () => {
       id: 'L-2024-001',
       loadNumber: 'L-2024-001',
       customer: 'ABC Logistics Inc.',
+      motorCarrier: 'MC-789654',
       origin: { city: 'Toronto', province: 'ON', address: '123 King St, Toronto, ON' },
       destination: { city: 'Vancouver', province: 'BC', address: '456 Main St, Vancouver, BC' },
       driver: 'John Stevens',
@@ -106,6 +107,7 @@ const LoadManagement = () => {
       id: 'L-2024-002',
       loadNumber: 'L-2024-002',
       customer: 'Global Freight Solutions',
+      motorCarrier: 'MC-456123',
       origin: { city: 'Montreal', province: 'QC', address: '789 Rue Saint-Jacques, Montreal, QC' },
       destination: { city: 'Calgary', province: 'AB', address: '321 Centre St, Calgary, AB' },
       driver: 'Sarah Miller',
@@ -130,6 +132,7 @@ const LoadManagement = () => {
       id: 'L-2024-003',
       loadNumber: 'L-2024-003',
       customer: 'Maritime Transport Co.',
+      motorCarrier: 'MC-321987',
       origin: { city: 'Halifax', province: 'NS', address: '555 Barrington St, Halifax, NS' },
       destination: { city: 'Winnipeg', province: 'MB', address: '777 Portage Ave, Winnipeg, MB' },
       driver: 'Mike Johnson',
@@ -160,6 +163,7 @@ const LoadManagement = () => {
       id: 'L-2024-004',
       loadNumber: 'L-2024-004',
       customer: 'Prairie Logistics',
+      motorCarrier: 'MC-654987',
       origin: { city: 'Edmonton', province: 'AB', address: '101 Jasper Ave, Edmonton, AB' },
       destination: { city: 'Ottawa', province: 'ON', address: '202 Rideau St, Ottawa, ON' },
       driver: 'Lisa Chang',
@@ -847,15 +851,16 @@ const LoadManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Date</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Load #</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Customer</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Route</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>MC</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Driver</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Pickup</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Delivery</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>RC</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>POD</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Rate</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Proof of Delivery</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Rate Confirmation</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Pickup Date</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -864,6 +869,16 @@ const LoadManagement = () => {
                 const statusConfig = getStatusColor(load.status);
                 return (
                   <TableRow key={load.id} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
+                    {/* Date */}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Schedule sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
+                        <Typography variant="body2" sx={{ color: '#374151' }}>
+                          {new Date(load.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    {/* Load # */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <LocalShipping sx={{ color: '#4F46E5', mr: 1, fontSize: 20 }} />
@@ -872,19 +887,19 @@ const LoadManagement = () => {
                         </Typography>
                       </Box>
                     </TableCell>
+                    {/* Customer */}
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
                         {load.customer}
                       </Typography>
                     </TableCell>
+                    {/* MC */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <LocationOn sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ color: '#374151' }}>
-                          {load.origin.city}, {load.origin.province} → {load.destination.city}, {load.destination.province}
-                        </Typography>
-                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#374151', fontFamily: 'monospace' }}>
+                        {load.motorCarrier}
+                      </Typography>
                     </TableCell>
+                    {/* Driver */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Avatar sx={{ width: 24, height: 24, bgcolor: '#4F46E5', fontSize: '0.75rem', mr: 1 }}>
@@ -895,62 +910,29 @@ const LoadManagement = () => {
                         </Typography>
                       </Box>
                     </TableCell>
+                    {/* Pickup */}
                     <TableCell>
-                      <Chip
-                        label={statusConfig.label}
-                        size="small"
-                        sx={{
-                          bgcolor: statusConfig.bgcolor,
-                          color: statusConfig.color,
-                          fontWeight: 600,
-                          fontSize: '0.75rem'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <AttachMoney sx={{ color: '#6B7280', fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ color: '#111827', fontWeight: 600 }}>
-                          {load.rate.toLocaleString()}
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
+                          {load.origin.city}, {load.origin.province}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          {new Date(load.pickupDate).toLocaleDateString()}
                         </Typography>
                       </Box>
                     </TableCell>
+                    {/* Delivery */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        {load.proofOfDelivery && load.proofOfDelivery.length > 0 ? (
-                          <>
-                            <Chip
-                              icon={<PictureAsPdf />}
-                              label={`${load.proofOfDelivery.length} PDF${load.proofOfDelivery.length > 1 ? 's' : ''}`}
-                              size="small"
-                              onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
-                              sx={{
-                                bgcolor: '#D1FAE5',
-                                color: '#059669',
-                                cursor: 'pointer',
-                                '&:hover': { bgcolor: '#A7F3D0' }
-                              }}
-                            />
-                          </>
-                        ) : (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<CloudUpload />}
-                            sx={{
-                              fontSize: '0.75rem',
-                              py: 0.5,
-                              px: 1,
-                              borderColor: '#D1D5DB',
-                              color: '#6B7280'
-                            }}
-                            onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
-                          >
-                            Upload
-                          </Button>
-                        )}
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
+                          {load.destination.city}, {load.destination.province}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          {new Date(load.deliveryDate).toLocaleDateString()}
+                        </Typography>
                       </Box>
                     </TableCell>
+                    {/* RC (Rate Confirmation) */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         {load.rateConfirmation && load.rateConfirmation.length > 0 ? (
@@ -987,14 +969,57 @@ const LoadManagement = () => {
                         )}
                       </Box>
                     </TableCell>
+                    {/* POD (Proof of Delivery) */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Schedule sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ color: '#374151' }}>
-                          {new Date(load.pickupDate).toLocaleDateString()}
-                        </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        {load.proofOfDelivery && load.proofOfDelivery.length > 0 ? (
+                          <>
+                            <Chip
+                              icon={<PictureAsPdf />}
+                              label={`${load.proofOfDelivery.length} PDF${load.proofOfDelivery.length > 1 ? 's' : ''}`}
+                              size="small"
+                              onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
+                              sx={{
+                                bgcolor: '#D1FAE5',
+                                color: '#059669',
+                                cursor: 'pointer',
+                                '&:hover': { bgcolor: '#A7F3D0' }
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<CloudUpload />}
+                            sx={{
+                              fontSize: '0.75rem',
+                              py: 0.5,
+                              px: 1,
+                              borderColor: '#D1D5DB',
+                              color: '#6B7280'
+                            }}
+                            onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
+                          >
+                            Upload
+                          </Button>
+                        )}
                       </Box>
                     </TableCell>
+                    {/* Status */}
+                    <TableCell>
+                      <Chip
+                        label={statusConfig.label}
+                        size="small"
+                        sx={{
+                          bgcolor: statusConfig.bgcolor,
+                          color: statusConfig.color,
+                          fontWeight: 600,
+                          fontSize: '0.75rem'
+                        }}
+                      />
+                    </TableCell>
+                    {/* Actions */}
                     <TableCell>
                       <IconButton
                         size="small"

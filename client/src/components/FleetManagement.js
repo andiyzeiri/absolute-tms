@@ -180,8 +180,69 @@ const FleetManagement = () => {
   });
 
   useEffect(() => {
-    setVehicles(demoVehicles);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchVehicles();
+  }, []);
+
+  // Helper function to normalize vehicle data from API to frontend format
+  const normalizeVehicle = (vehicle) => {
+    return {
+      id: vehicle._id || vehicle.id,
+      _id: vehicle._id || vehicle.id,
+      vehicleNumber: vehicle.vehicleNumber,
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      type: vehicle.type,
+      plateNumber: vehicle.registration?.plateNumber || vehicle.plateNumber,
+      vin: vehicle.registration?.vinNumber || vehicle.vin,
+      driver: vehicle.assignedDriver ?
+        `${vehicle.assignedDriver.firstName} ${vehicle.assignedDriver.lastName}` :
+        (vehicle.driver || 'Unassigned'),
+      status: vehicle.status,
+      location: vehicle.location?.currentAddress || vehicle.location || 'Unknown',
+      mileage: vehicle.maintenance?.odometerReading || vehicle.mileage || 0,
+      fuelLevel: vehicle.fuelLevel || Math.floor(Math.random() * 100), // Default to random for demo
+      lastService: vehicle.maintenance?.lastServiceDate || vehicle.lastService,
+      nextService: vehicle.maintenance?.nextServiceDate || vehicle.nextService,
+      insurance: {
+        provider: vehicle.insurance?.provider || vehicle.insurance?.provider,
+        policyNumber: vehicle.insurance?.policyNumber || vehicle.insurance?.policyNumber,
+        expiryDate: vehicle.insurance?.expiryDate || vehicle.insurance?.expiryDate
+      },
+      alerts: vehicle.alerts || []
+    };
+  };
+
+  const fetchVehicles = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/vehicles', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const normalizedVehicles = (data.data || []).map(normalizeVehicle);
+        setVehicles(normalizedVehicles);
+      } else {
+        console.error('Failed to fetch vehicles:', response.statusText);
+        // Fallback to demo data if API fails
+        setVehicles(demoVehicles);
+        setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+      // Fallback to demo data if API fails
+      setVehicles(demoVehicles);
+      setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusConfig = (status) => {
     const statusConfigs = {
@@ -260,66 +321,107 @@ const FleetManagement = () => {
     setSelectedVehicle(null);
   };
 
-  const handleSaveVehicle = () => {
-    if (dialogMode === 'add') {
-      const newVehicle = {
-        id: `V-${String(vehicles.length + 1).padStart(3, '0')}`,
+  const handleSaveVehicle = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+
+      // Prepare vehicle data for API
+      const vehicleData = {
         vehicleNumber: formData.vehicleNumber,
         make: formData.make,
         model: formData.model,
         year: parseInt(formData.year),
-        type: formData.type,
-        plateNumber: formData.plateNumber,
-        vin: formData.vin,
-        driver: formData.driver,
+        type: formData.type.toLowerCase(), // API expects lowercase
+        registration: {
+          plateNumber: formData.plateNumber,
+          vinNumber: formData.vin
+        },
         status: formData.status,
-        location: 'Base Location',
-        mileage: parseInt(formData.mileage),
-        fuelLevel: parseInt(formData.fuelLevel),
-        lastService: new Date().toISOString(),
-        nextService: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        maintenance: {
+          odometerReading: parseInt(formData.mileage) || 0,
+          lastServiceDate: new Date(),
+          nextServiceDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+        },
         insurance: {
           provider: formData.insuranceProvider,
           policyNumber: formData.policyNumber,
-          expiryDate: new Date(formData.insuranceExpiry).toISOString()
+          expiryDate: new Date(formData.insuranceExpiry)
         },
-        alerts: []
+        location: {
+          currentAddress: 'Base Location'
+        }
       };
-      setVehicles([...vehicles, newVehicle]);
-      setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
-    } else if (dialogMode === 'edit') {
-      const updatedVehicles = vehicles.map(vehicle => 
-        vehicle.id === selectedVehicle.id ? {
-          ...vehicle,
-          vehicleNumber: formData.vehicleNumber,
-          make: formData.make,
-          model: formData.model,
-          year: parseInt(formData.year),
-          type: formData.type,
-          plateNumber: formData.plateNumber,
-          vin: formData.vin,
-          driver: formData.driver,
-          status: formData.status,
-          mileage: parseInt(formData.mileage),
-          fuelLevel: parseInt(formData.fuelLevel),
-          insurance: {
-            ...vehicle.insurance,
-            provider: formData.insuranceProvider,
-            policyNumber: formData.policyNumber,
-            expiryDate: new Date(formData.insuranceExpiry).toISOString()
-          }
-        } : vehicle
-      );
-      setVehicles(updatedVehicles);
-      setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
+
+      if (dialogMode === 'add') {
+        const response = await fetch('/api/vehicles', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(vehicleData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
+          fetchVehicles(); // Refresh the list
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to add vehicle');
+        }
+      } else if (dialogMode === 'edit') {
+        const response = await fetch(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(vehicleData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
+          fetchVehicles(); // Refresh the list
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update vehicle');
+        }
+      }
+
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      setSnackbar({ open: true, message: error.message || 'Error saving vehicle', severity: 'error' });
+    } finally {
+      setLoading(false);
     }
-    handleCloseDialog();
   };
 
-  const handleDeleteVehicle = (vehicleId) => {
-    const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
-    setVehicles(updatedVehicles);
-    setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
+  const handleDeleteVehicle = async (vehicleId) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`/api/vehicles/${vehicleId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
+        fetchVehicles(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete vehicle');
+      }
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      setSnackbar({ open: true, message: error.message || 'Error deleting vehicle', severity: 'error' });
+    }
     handleCloseMenu();
   };
 
