@@ -18,6 +18,7 @@ import RateConfirmations from './components/RateConfirmations';
 import PayrollManagement from './components/PayrollManagement';
 import FuelManagement from './components/FuelManagement';
 import EldManagement from './components/EldManagement';
+import EmailIntegration from './components/EmailIntegration';
 import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
 import { LocalShipping } from '@mui/icons-material';
@@ -94,6 +95,8 @@ const MainApp = () => {
         return <FuelManagement />;
       case 'eld':
         return <EldManagement />;
+      case 'email':
+        return <EmailIntegration />;
       case 'settings':
         return <Settings />;
       default:

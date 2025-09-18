@@ -290,7 +290,8 @@ const BrokerManagement = () => {
         paymentTerms: broker.paymentTerms,
         creditLimit: broker.creditLimit,
         notes: broker.notes,
-        status: broker.status
+        status: broker.status,
+        motorCarrier: broker.motorCarrier || ''
       });
     } else {
       setFormData({
@@ -332,7 +333,8 @@ const BrokerManagement = () => {
         joinedDate: new Date().toISOString(),
         paymentTerms: formData.paymentTerms,
         creditLimit: parseInt(formData.creditLimit) || 0,
-        notes: formData.notes
+        notes: formData.notes,
+        motorCarrier: formData.motorCarrier || ''
       };
       
       const updatedBrokers = [...brokers, newBroker];
@@ -357,7 +359,8 @@ const BrokerManagement = () => {
           status: formData.status,
           paymentTerms: formData.paymentTerms,
           creditLimit: parseInt(formData.creditLimit) || 0,
-          notes: formData.notes
+          notes: formData.notes,
+          motorCarrier: formData.motorCarrier || ''
         } : broker
       );
       
@@ -779,6 +782,16 @@ const BrokerManagement = () => {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={dialogMode === 'view'}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Motor Carrier (MC)"
+                value={formData.motorCarrier}
+                onChange={(e) => setFormData({ ...formData, motorCarrier: e.target.value })}
+                disabled={dialogMode === 'view'}
+                placeholder="e.g. MC-123456"
               />
             </Grid>
             <Grid item xs={12}>

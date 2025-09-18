@@ -69,6 +69,16 @@ const loadSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  deliveryTime: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  pickupTime: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   rate: {
     type: Number,
     required: true,
@@ -83,6 +93,11 @@ const loadSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  notes: {
+    type: String,
+    trim: true,
+    default: ''
   },
   proofOfDelivery: [{
     filename: {

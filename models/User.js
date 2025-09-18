@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
   company: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
-    required: [true, 'Company is required']
+    required: false // Made optional to support existing users without companies
   },
   companyName: {
     type: String,

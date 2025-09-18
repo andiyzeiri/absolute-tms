@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import googleMapsService from '../services/googleMapsService';
 import API_ENDPOINTS from '../config/api';
 import {
   Box,
@@ -29,7 +31,10 @@ import {
   Divider,
   Alert,
   Snackbar,
-  Autocomplete
+  Autocomplete,
+  ClickAwayListener,
+  Paper,
+  Popper
 } from '@mui/material';
 import {
   Add,
@@ -55,10 +60,13 @@ import {
 } from '@mui/icons-material';
 
 const LoadManagement = () => {
+  console.log('🚛 LoadManagement component is starting to load...');
+
   const [loads, setLoads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showUpcoming, setShowUpcoming] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedLoad, setSelectedLoad] = useState(null);
   const [dialogMode, setDialogMode] = useState('add'); // 'add', 'edit', 'view'
@@ -76,23 +84,32 @@ const LoadManagement = () => {
   const [pdfManagerOpen, setPdfManagerOpen] = useState(false);
   const [currentPdfManager, setCurrentPdfManager] = useState({ loadId: null, type: null, loadNumber: '' });
 
+  // Inline editing states
+  const [editingCell, setEditingCell] = useState({ loadId: null, field: null });
+  const [editingValue, setEditingValue] = useState('');
+  const [popperAnchorEl, setPopperAnchorEl] = useState(null);
+  const [popperField, setPopperField] = useState(null);
+
   // Demo data - in real app this would come from API
   const demoLoads = [
     {
       id: 'L-2024-001',
       loadNumber: 'L-2024-001',
-      customer: 'ABC Logistics Inc.',
+      customer: 'Walmart Canada Corp',
       motorCarrier: 'MC-789654',
-      origin: { city: 'Toronto', province: 'ON', address: '123 King St, Toronto, ON' },
-      destination: { city: 'Vancouver', province: 'BC', address: '456 Main St, Vancouver, BC' },
+      origin: { city: 'New York', province: 'NY', address: '123 Broadway, New York, NY' },
+      destination: { city: 'Los Angeles', province: 'CA', address: '456 Sunset Blvd, Los Angeles, CA' },
       driver: 'John Stevens',
       vehicle: 'Truck-001',
       status: 'in_transit',
       pickupDate: '2024-01-15T10:00:00Z',
-      deliveryDate: '2024-01-18T14:00:00Z',
+      deliveryDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+      pickupTime: '10:00',
+      deliveryTime: '14:00',
       rate: 4250,
       weight: '12,500 lbs',
       commodity: 'Electronics',
+      notes: 'High-value electronics, fragile handling required. Customer prefers morning delivery.',
       createdAt: '2024-01-10T09:00:00Z',
       proofOfDelivery: [{
         filename: 'POD_L-2024-001_electronics.pdf',
@@ -106,18 +123,21 @@ const LoadManagement = () => {
     {
       id: 'L-2024-002',
       loadNumber: 'L-2024-002',
-      customer: 'Global Freight Solutions',
+      customer: 'Canadian Tire Corporation',
       motorCarrier: 'MC-456123',
-      origin: { city: 'Montreal', province: 'QC', address: '789 Rue Saint-Jacques, Montreal, QC' },
-      destination: { city: 'Calgary', province: 'AB', address: '321 Centre St, Calgary, AB' },
+      origin: { city: 'Chicago', province: 'IL', address: '789 Michigan Ave, Chicago, IL' },
+      destination: { city: 'Houston', province: 'TX', address: '321 Main St, Houston, TX' },
       driver: 'Sarah Miller',
       vehicle: 'Truck-002',
       status: 'pending',
       pickupDate: '2024-01-20T08:00:00Z',
-      deliveryDate: '2024-01-23T16:00:00Z',
+      deliveryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+      pickupTime: '08:00',
+      deliveryTime: '16:00',
       rate: 3890,
       weight: '8,750 lbs',
       commodity: 'Automotive Parts',
+      notes: 'Standard automotive parts shipment. Dock access available 8am-5pm.',
       createdAt: '2024-01-12T11:30:00Z',
       proofOfDelivery: [],
       rateConfirmation: [{
@@ -131,18 +151,21 @@ const LoadManagement = () => {
     {
       id: 'L-2024-003',
       loadNumber: 'L-2024-003',
-      customer: 'Maritime Transport Co.',
+      broker: 'Global Freight Brokers',
       motorCarrier: 'MC-321987',
-      origin: { city: 'Halifax', province: 'NS', address: '555 Barrington St, Halifax, NS' },
-      destination: { city: 'Winnipeg', province: 'MB', address: '777 Portage Ave, Winnipeg, MB' },
+      origin: { city: 'Miami', province: 'FL', address: '555 Ocean Drive, Miami, FL' },
+      destination: { city: 'Seattle', province: 'WA', address: '777 Pine St, Seattle, WA' },
       driver: 'Mike Johnson',
       vehicle: 'Truck-003',
       status: 'delivered',
       pickupDate: '2024-01-12T07:00:00Z',
       deliveryDate: '2024-01-15T15:00:00Z',
+      pickupTime: '07:00',
+      deliveryTime: '15:00',
       rate: 5120,
       weight: '15,200 lbs',
       commodity: 'Food Products',
+      notes: 'Refrigerated transport required. Temperature maintained at 32-35°F throughout journey.',
       createdAt: '2024-01-08T14:15:00Z',
       proofOfDelivery: [{
         filename: 'POD_L-2024-003_food.pdf',
@@ -164,16 +187,19 @@ const LoadManagement = () => {
       loadNumber: 'L-2024-004',
       customer: 'Prairie Logistics',
       motorCarrier: 'MC-654987',
-      origin: { city: 'Edmonton', province: 'AB', address: '101 Jasper Ave, Edmonton, AB' },
-      destination: { city: 'Ottawa', province: 'ON', address: '202 Rideau St, Ottawa, ON' },
+      origin: { city: 'Phoenix', province: 'AZ', address: '101 Central Ave, Phoenix, AZ' },
+      destination: { city: 'Boston', province: 'MA', address: '202 Newbury St, Boston, MA' },
       driver: 'Lisa Chang',
       vehicle: 'Truck-004',
       status: 'delayed',
       pickupDate: '2024-01-16T09:00:00Z',
-      deliveryDate: '2024-01-19T17:00:00Z',
+      deliveryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+      pickupTime: '09:00',
+      deliveryTime: '17:00',
       rate: 4750,
       weight: '11,800 lbs',
       commodity: 'Industrial Equipment',
+      notes: 'Weather delays expected. Heavy machinery requires special loading equipment at destination.',
       createdAt: '2024-01-11T10:45:00Z',
       proofOfDelivery: [],
       rateConfirmation: []
@@ -194,9 +220,12 @@ const LoadManagement = () => {
     vehicle: '',
     pickupDate: '',
     deliveryDate: '',
+    pickupTime: '',
+    deliveryTime: '',
     rate: '',
     weight: '',
     commodity: '',
+    notes: '',
     status: 'pending'
   });
 
@@ -241,17 +270,18 @@ const LoadManagement = () => {
         id: customer.id,
         company: customer.company,
         contactPerson: customer.contactPerson,
-        status: customer.status
+        status: customer.status,
+        motorCarrier: customer.motorCarrier
       }));
       setAvailableCustomers(customerOptions);
     } else {
       // Initialize with demo customers if none exist
       const demoCustomers = [
-        { id: 'C-001', company: 'Walmart Canada Corp', contactPerson: 'Robert Johnson', status: 'active' },
-        { id: 'C-002', company: 'Canadian Tire Corporation', contactPerson: 'Michelle Davis', status: 'active' },
-        { id: 'C-003', company: 'Shoppers Drug Mart', contactPerson: 'David Chen', status: 'active' },
-        { id: 'C-004', company: 'Metro Inc.', contactPerson: 'Sarah Thompson', status: 'active' },
-        { id: 'C-005', company: 'Home Depot Canada', contactPerson: 'Mark Wilson', status: 'pending' }
+        { id: 'C-001', company: 'Walmart Canada Corp', contactPerson: 'Robert Johnson', status: 'active', motorCarrier: 'MC-111222' },
+        { id: 'C-002', company: 'Canadian Tire Corporation', contactPerson: 'Michelle Davis', status: 'active', motorCarrier: 'MC-333444' },
+        { id: 'C-003', company: 'Shoppers Drug Mart', contactPerson: 'David Chen', status: 'active', motorCarrier: 'MC-555666' },
+        { id: 'C-004', company: 'Metro Inc.', contactPerson: 'Sarah Thompson', status: 'active', motorCarrier: 'MC-777888' },
+        { id: 'C-005', company: 'Home Depot Canada', contactPerson: 'Mark Wilson', status: 'pending', motorCarrier: 'MC-999000' }
       ];
       setAvailableCustomers(demoCustomers);
     }
@@ -266,17 +296,18 @@ const LoadManagement = () => {
         id: broker.id,
         company: broker.company,
         contactPerson: broker.contactPerson,
-        status: broker.status
+        status: broker.status,
+        motorCarrier: broker.motorCarrier
       }));
       setAvailableBrokers(brokerOptions);
     } else {
       // Initialize with demo brokers if none exist
       const demoBrokers = [
-        { id: 'B-001', company: 'Global Freight Brokers', contactPerson: 'Michael Thompson', status: 'active' },
-        { id: 'B-002', company: 'Prime Logistics Solutions', contactPerson: 'Sarah Chen', status: 'active' },
-        { id: 'B-003', company: 'Atlantic Freight Partners', contactPerson: 'David Murphy', status: 'active' },
-        { id: 'B-004', company: 'Prairie Express Brokers', contactPerson: 'Jennifer Wilson', status: 'active' },
-        { id: 'B-005', company: 'Northern Transport Hub', contactPerson: 'Robert Lee', status: 'pending' }
+        { id: 'B-001', company: 'Global Freight Brokers', contactPerson: 'Michael Thompson', status: 'active', motorCarrier: 'MC-789654' },
+        { id: 'B-002', company: 'Prime Logistics Solutions', contactPerson: 'Sarah Chen', status: 'active', motorCarrier: 'MC-456123' },
+        { id: 'B-003', company: 'Atlantic Freight Partners', contactPerson: 'David Murphy', status: 'active', motorCarrier: 'MC-321987' },
+        { id: 'B-004', company: 'Prairie Express Brokers', contactPerson: 'Jennifer Wilson', status: 'active', motorCarrier: 'MC-654987' },
+        { id: 'B-005', company: 'Northern Transport Hub', contactPerson: 'Robert Lee', status: 'pending', motorCarrier: 'MC-555123' }
       ];
       setAvailableBrokers(demoBrokers);
     }
@@ -328,12 +359,463 @@ const LoadManagement = () => {
     return statusColors[status] || statusColors.pending;
   };
 
+  // Helper function to get MC number for customer or broker
+  const getMCNumber = (entityName, entityType) => {
+    if (!entityName) return '';
+
+    if (entityType === 'customer') {
+      const customer = availableCustomers.find(c => c.company === entityName);
+      const mc = customer?.motorCarrier || '';
+      return mc ? (mc.startsWith('MC-') ? mc : `MC-${mc}`) : '';
+    } else if (entityType === 'broker') {
+      const broker = availableBrokers.find(b => b.company === entityName);
+      const mc = broker?.motorCarrier || '';
+      return mc ? (mc.startsWith('MC-') ? mc : `MC-${mc}`) : '';
+    }
+
+    return '';
+  };
+
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str) => {
+    if (!str) return '';
+    return str.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Calculate driving mileage between two cities for trucking/transportation
+  const calculateMileage = async (origin, destination) => {
+    // First try our backend API for Google Maps integration (bypasses CORS)
+    try {
+      const response = await axios.post('/api/maps/distance', {
+        origin,
+        destination
+      });
+
+      if (response.data.success) {
+        console.log(`✅ Got ${response.data.distance} miles via ${response.data.apiUsed}`);
+        return response.data.distance;
+      } else if (response.data.fallback) {
+        console.warn('Backend API suggested fallback to static database');
+        // Fall through to static database
+      }
+    } catch (error) {
+      console.warn('Backend Maps API failed, falling back to static database:', error);
+      // Fall through to static database
+    }
+
+    // Fallback to static driving distances database
+    // Realistic driving distances between major US cities (truck-friendly routes)
+    const drivingDistances = {
+      // Major city pairs with actual driving distances
+      'new york-los angeles': 2789,
+      'new york-chicago': 789,
+      'new york-houston': 1628,
+      'new york-phoenix': 2408,
+      'new york-philadelphia': 95,
+      'new york-dallas': 1372,
+      'new york-miami': 1280,
+      'new york-seattle': 2852,
+      'new york-denver': 1780,
+      'new york-atlanta': 872,
+      'new york-boston': 215,
+      'new york-detroit': 641,
+      'new york-nashville': 892,
+      'new york-las vegas': 2534,
+      'new york-san francisco': 2908,
+
+      'los angeles-chicago': 2015,
+      'los angeles-houston': 1374,
+      'los angeles-phoenix': 372,
+      'los angeles-dallas': 1435,
+      'los angeles-miami': 2732,
+      'los angeles-seattle': 1135,
+      'los angeles-denver': 1015,
+      'los angeles-atlanta': 2182,
+      'los angeles-boston': 3017,
+      'los angeles-detroit': 2278,
+      'los angeles-nashville': 1796,
+      'los angeles-las vegas': 270,
+      'los angeles-san francisco': 382,
+
+      'chicago-houston': 1092,
+      'chicago-phoenix': 1729,
+      'chicago-dallas': 925,
+      'chicago-miami': 1377,
+      'chicago-seattle': 2064,
+      'chicago-denver': 920,
+      'chicago-atlanta': 717,
+      'chicago-boston': 983,
+      'chicago-detroit': 282,
+      'chicago-nashville': 472,
+      'chicago-las vegas': 1749,
+      'chicago-san francisco': 2142,
+
+      'houston-phoenix': 1177,
+      'houston-dallas': 239,
+      'houston-miami': 1187,
+      'houston-seattle': 2348,
+      'houston-denver': 879,
+      'houston-atlanta': 789,
+      'houston-boston': 1886,
+      'houston-detroit': 1265,
+      'houston-nashville': 665,
+      'houston-las vegas': 1545,
+      'houston-san francisco': 1645,
+
+      'phoenix-dallas': 887,
+      'phoenix-miami': 2359,
+      'phoenix-seattle': 1420,
+      'phoenix-denver': 602,
+      'phoenix-atlanta': 1808,
+      'phoenix-boston': 2664,
+      'phoenix-detroit': 1986,
+      'phoenix-nashville': 1443,
+      'phoenix-las vegas': 297,
+      'phoenix-san francisco': 653,
+
+      'philadelphia-dallas': 1515,
+      'philadelphia-miami': 1019,
+      'philadelphia-seattle': 2378,
+      'philadelphia-denver': 1691,
+      'philadelphia-atlanta': 666,
+      'philadelphia-boston': 304,
+      'philadelphia-detroit': 453,
+      'philadelphia-nashville': 566,
+      'philadelphia-las vegas': 2407,
+      'philadelphia-san francisco': 2847,
+
+      'dallas-miami': 1308,
+      'dallas-seattle': 2148,
+      'dallas-denver': 641,
+      'dallas-atlanta': 781,
+      'dallas-boston': 1748,
+      'dallas-detroit': 1143,
+      'dallas-nashville': 664,
+      'dallas-las vegas': 1230,
+      'dallas-san francisco': 1732,
+
+      'miami-seattle': 3273,
+      'miami-denver': 2061,
+      'miami-atlanta': 662,
+      'miami-boston': 1504,
+      'miami-detroit': 1279,
+      'miami-nashville': 1001,
+      'miami-las vegas': 2570,
+      'miami-san francisco': 3097,
+
+      'seattle-denver': 1318,
+      'seattle-atlanta': 2618,
+      'seattle-boston': 3099,
+      'seattle-detroit': 2280,
+      'seattle-nashville': 2300,
+      'seattle-las vegas': 1123,
+      'seattle-san francisco': 808,
+
+      'denver-atlanta': 1398,
+      'denver-boston': 1991,
+      'denver-detroit': 1273,
+      'denver-nashville': 1089,
+      'denver-las vegas': 748,
+      'denver-san francisco': 1253,
+
+      'atlanta-boston': 1084,
+      'atlanta-detroit': 699,
+      'atlanta-nashville': 244,
+      'atlanta-las vegas': 1742,
+      'atlanta-san francisco': 2496,
+
+      'boston-detroit': 695,
+      'boston-nashville': 1096,
+      'boston-las vegas': 2752,
+      'boston-san francisco': 3095,
+
+      'detroit-nashville': 467,
+      'detroit-las vegas': 1765,
+      'detroit-san francisco': 2397,
+
+      'nashville-las vegas': 1538,
+      'nashville-san francisco': 2273,
+
+      'las vegas-san francisco': 569
+    };
+
+    const originKey = origin.city.toLowerCase();
+    const destKey = destination.city.toLowerCase();
+
+    // Create lookup key for both directions
+    const key1 = `${originKey}-${destKey}`;
+    const key2 = `${destKey}-${originKey}`;
+
+    // Check for exact match in driving distances database
+    if (drivingDistances[key1]) {
+      return drivingDistances[key1];
+    }
+    if (drivingDistances[key2]) {
+      return drivingDistances[key2];
+    }
+
+    // If no exact match found, estimate based on states and typical truck routes
+    if (origin.province === destination.province) {
+      // Same state - estimate based on state size
+      const stateEstimates = {
+        'CA': 400, 'TX': 450, 'FL': 350, 'NY': 300, 'PA': 250,
+        'IL': 280, 'OH': 220, 'MI': 250, 'WI': 200, 'MN': 280,
+        'WA': 250, 'OR': 200, 'CO': 280, 'AZ': 300, 'NV': 350
+      };
+      const stateSize = stateEstimates[origin.province] || 200;
+      return Math.floor(Math.random() * (stateSize - 50) + 50);
+    } else {
+      // Different states - use regional estimates based on actual interstate routes
+      const regionEstimates = {
+        // West Coast to East Coast (I-80, I-40, I-10)
+        'CA-NY': 2850, 'CA-FL': 2550, 'CA-MA': 3100, 'WA-FL': 3200,
+        'OR-NY': 2900, 'NV-NY': 2650, 'AZ-NY': 2450, 'CA-PA': 2750,
+
+        // North to South routes (I-35, I-75, I-95)
+        'WA-TX': 1900, 'MN-TX': 1050, 'MI-FL': 1200, 'NY-FL': 1100,
+        'IL-TX': 950, 'OH-FL': 1050, 'WI-TX': 1150, 'IN-FL': 950,
+
+        // East Coast routes (I-95)
+        'ME-FL': 1350, 'NH-FL': 1250, 'MA-FL': 1200, 'CT-FL': 1150,
+        'NJ-FL': 1000, 'PA-FL': 950, 'MD-FL': 900,
+
+        // Midwest to West (I-80, I-70)
+        'IL-CA': 2050, 'OH-CA': 2300, 'MI-CA': 2250, 'IN-CA': 2100,
+        'WI-CA': 2000, 'MN-CA': 1850, 'IA-CA': 1750, 'MO-CA': 1650,
+
+        // Southern routes (I-10, I-20)
+        'TX-CA': 1450, 'LA-CA': 1650, 'MS-CA': 1800, 'AL-CA': 1950,
+        'GA-CA': 2100, 'FL-CA': 2550, 'TX-FL': 1100, 'LA-FL': 850
+      };
+
+      const key1 = `${origin.province}-${destination.province}`;
+      const key2 = `${destination.province}-${origin.province}`;
+
+      if (regionEstimates[key1]) return regionEstimates[key1];
+      if (regionEstimates[key2]) return regionEstimates[key2];
+
+      // Default interstate estimate based on general distance categories
+      const distance = Math.sqrt(
+        Math.pow(getStateDistance(origin.province, destination.province), 2)
+      );
+      return Math.round(distance * 1.4); // Apply 1.4 multiplier for road routing
+    }
+  };
+
+  // Helper function to estimate distance category between states
+  const getStateDistance = (state1, state2) => {
+    const stateCoords = {
+      'CA': {lat: 36.7783, lng: -119.4179}, 'TX': {lat: 31.9686, lng: -99.9018},
+      'FL': {lat: 27.7663, lng: -82.6404}, 'NY': {lat: 40.7282, lng: -74.0776},
+      'PA': {lat: 41.2033, lng: -77.1945}, 'IL': {lat: 40.3495, lng: -88.9861},
+      'OH': {lat: 40.3888, lng: -82.7649}, 'MI': {lat: 43.3266, lng: -84.5361},
+      'GA': {lat: 33.0406, lng: -83.6431}, 'NC': {lat: 35.5397, lng: -79.8431},
+      'NJ': {lat: 40.2989, lng: -74.5210}, 'VA': {lat: 37.7693, lng: -78.2057},
+      'WA': {lat: 47.4009, lng: -121.4905}, 'AZ': {lat: 33.7298, lng: -111.4312},
+      'MA': {lat: 42.2373, lng: -71.5314}, 'IN': {lat: 39.8494, lng: -86.2583},
+      'TN': {lat: 35.7478, lng: -86.7923}, 'MO': {lat: 38.4561, lng: -92.2884},
+      'MD': {lat: 39.0639, lng: -76.8021}, 'WI': {lat: 44.2619, lng: -89.6165},
+      'MN': {lat: 45.6945, lng: -93.9002}, 'CO': {lat: 39.0598, lng: -105.3111},
+      'AL': {lat: 32.7990, lng: -86.8073}, 'LA': {lat: 31.1695, lng: -91.8678},
+      'KY': {lat: 37.6681, lng: -84.6701}, 'OR': {lat: 44.5672, lng: -122.1269},
+      'OK': {lat: 35.5653, lng: -96.9289}, 'CT': {lat: 41.5978, lng: -72.7554},
+      'NV': {lat: 38.3135, lng: -117.0554}, 'UT': {lat: 40.1500, lng: -111.8947}
+    };
+
+    const coord1 = stateCoords[state1];
+    const coord2 = stateCoords[state2];
+
+    if (!coord1 || !coord2) return 1000; // Default
+
+    // Simple distance calculation for category estimation
+    const latDiff = Math.abs(coord1.lat - coord2.lat);
+    const lngDiff = Math.abs(coord1.lng - coord2.lng);
+
+    return Math.sqrt(latDiff * latDiff * 69 * 69 + lngDiff * lngDiff * 54.6 * 54.6);
+  };
+
+  // Component to display mileage with async calculation
+  const MileageDisplay = ({ origin, destination }) => {
+    const [mileage, setMileage] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchMileage = async () => {
+        try {
+          const distance = await calculateMileage(origin, destination);
+          setMileage(distance);
+        } catch (error) {
+          console.error('Failed to calculate mileage:', error);
+          // Fallback to simple estimate
+          setMileage(Math.floor(Math.random() * 1500 + 500));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchMileage();
+    }, [origin, destination]);
+
+    if (loading) {
+      return (
+        <Typography variant="body2" sx={{
+          fontWeight: 600,
+          color: '#9CA3AF',
+          fontSize: '0.8125rem',
+          bgcolor: '#F3F4F6',
+          px: 2,
+          py: 0.5,
+          borderRadius: 1
+        }}>
+          Loading...
+        </Typography>
+      );
+    }
+
+    return (
+      <Typography variant="body2" sx={{
+        fontWeight: 600,
+        color: '#4F46E5',
+        fontSize: '0.8125rem',
+        bgcolor: '#EEF2FF',
+        px: 2,
+        py: 0.5,
+        borderRadius: 1
+      }}>
+        {mileage ? mileage.toLocaleString() : '---'} mi
+      </Typography>
+    );
+  };
+
+  // Component to display RPM (Rate Per Mile) with async calculation
+  const RPMDisplay = ({ rate, origin, destination }) => {
+    const [mileage, setMileage] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchMileage = async () => {
+        try {
+          const distance = await calculateMileage(origin, destination);
+          setMileage(distance);
+        } catch (error) {
+          console.error('Failed to calculate mileage for RPM:', error);
+          // Fallback to simple estimate
+          setMileage(Math.floor(Math.random() * 1500 + 500));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchMileage();
+    }, [origin, destination]);
+
+    if (loading) {
+      return (
+        <Typography variant="body2" sx={{
+          fontWeight: 600,
+          color: '#9CA3AF',
+          fontSize: '0.8125rem',
+          bgcolor: '#F3F4F6',
+          px: 2,
+          py: 0.5,
+          borderRadius: 1
+        }}>
+          Loading...
+        </Typography>
+      );
+    }
+
+    const rpm = rate && mileage && mileage > 0 ? rate / mileage : 0;
+
+    return (
+      <Typography variant="body2" sx={{
+        fontWeight: 600,
+        color: '#059669',
+        fontSize: '0.8125rem',
+        bgcolor: '#ECFDF5',
+        px: 2,
+        py: 0.5,
+        borderRadius: 1
+      }}>
+        ${rpm ? rpm.toFixed(2) : '0.00'}
+      </Typography>
+    );
+  };
+
+
+  // Helper function to get start and end of current week (Monday to Sunday)
+  const getCurrentWeek = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days to Monday
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return { start: monday, end: sunday };
+  };
+
+  // Helper function to check if a date is in current week
+  const isCurrentWeek = (dateString) => {
+    const date = new Date(dateString);
+    const { start, end } = getCurrentWeek();
+    return date >= start && date <= end;
+  };
+
+  // Helper function to get day name
+  const getDayName = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' });
+  };
+
+  // Helper function to group loads by day
+  const groupLoadsByDay = (loads) => {
+    const grouped = {};
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    loads.forEach(load => {
+      // Use delivery date for grouping
+      const dayName = getDayName(load.deliveryDate);
+      if (!grouped[dayName]) {
+        grouped[dayName] = [];
+      }
+      grouped[dayName].push(load);
+    });
+
+    // Sort each day's loads by delivery time if available, otherwise by delivery date
+    Object.keys(grouped).forEach(day => {
+      grouped[day].sort((a, b) => {
+        if (a.deliveryTime && b.deliveryTime) {
+          return a.deliveryTime.localeCompare(b.deliveryTime);
+        }
+        return new Date(a.deliveryDate) - new Date(b.deliveryDate);
+      });
+    });
+
+    // Return in day order
+    const orderedGrouped = {};
+    dayOrder.forEach(day => {
+      if (grouped[day]) {
+        orderedGrouped[day] = grouped[day];
+      }
+    });
+
+    return orderedGrouped;
+  };
+
   const filteredLoads = loads.filter(load => {
     const matchesSearch = load.loadNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          load.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          load.driver.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || load.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    const matchesWeek = !showUpcoming || isCurrentWeek(load.deliveryDate);
+    return matchesSearch && matchesFilter && matchesWeek;
   });
 
   const handleOpenDialog = (mode, load = null) => {
@@ -355,9 +837,12 @@ const LoadManagement = () => {
         vehicle: load.vehicle,
         pickupDate: load.pickupDate ? new Date(load.pickupDate).toISOString().split('T')[0] : '',
         deliveryDate: load.deliveryDate ? new Date(load.deliveryDate).toISOString().split('T')[0] : '',
+        pickupTime: load.pickupTime || '',
+        deliveryTime: load.deliveryTime || '',
         rate: load.rate.toString(),
         weight: load.weight,
         commodity: load.commodity,
+        notes: load.notes || '',
         status: load.status
       });
     } else {
@@ -376,9 +861,12 @@ const LoadManagement = () => {
         vehicle: '',
         pickupDate: '',
         deliveryDate: '',
+        pickupTime: '',
+        deliveryTime: '',
         rate: '',
         weight: '',
         commodity: '',
+        notes: '',
         status: 'pending'
       });
     }
@@ -393,7 +881,51 @@ const LoadManagement = () => {
   const handleSaveLoad = () => {
     try {
       setLoading(true);
-      
+
+      // Check if customer is new and add to available customers
+      if (formData.customer && formData.customer.trim()) {
+        const customerExists = availableCustomers.some(customer =>
+          customer.company.toLowerCase() === formData.customer.toLowerCase()
+        );
+
+        if (!customerExists) {
+          const newCustomer = {
+            id: `C-${String(availableCustomers.length + 1).padStart(3, '0')}`,
+            company: formData.customer.trim(),
+            contactPerson: 'Contact Person',
+            status: 'active'
+          };
+
+          const updatedCustomers = [...availableCustomers, newCustomer];
+          setAvailableCustomers(updatedCustomers);
+
+          // Save to localStorage
+          localStorage.setItem('tms_customers', JSON.stringify(updatedCustomers));
+        }
+      }
+
+      // Check if broker is new and add to available brokers
+      if (formData.broker && formData.broker.trim()) {
+        const brokerExists = availableBrokers.some(broker =>
+          broker.company.toLowerCase() === formData.broker.toLowerCase()
+        );
+
+        if (!brokerExists) {
+          const newBroker = {
+            id: `B-${String(availableBrokers.length + 1).padStart(3, '0')}`,
+            company: formData.broker.trim(),
+            contactPerson: 'Contact Person',
+            status: 'active'
+          };
+
+          const updatedBrokers = [...availableBrokers, newBroker];
+          setAvailableBrokers(updatedBrokers);
+
+          // Save to localStorage
+          localStorage.setItem('tms_brokers', JSON.stringify(updatedBrokers));
+        }
+      }
+
       const loadData = {
         id: dialogMode === 'add' ? `L-${new Date().getFullYear()}-${String(loads.length + 1).padStart(3, '0')}` : selectedLoad.id,
         loadNumber: formData.loadNumber,
@@ -414,23 +946,26 @@ const LoadManagement = () => {
         status: formData.status,
         pickupDate: formData.pickupDate ? new Date(formData.pickupDate).toISOString() : new Date().toISOString(),
         deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate).toISOString() : new Date().toISOString(),
+        pickupTime: formData.pickupTime || '',
+        deliveryTime: formData.deliveryTime || '',
         rate: parseFloat(formData.rate) || 0,
         weight: formData.weight || '10,000 lbs',
         commodity: formData.commodity || 'General Freight',
+        notes: formData.notes || '',
         createdAt: dialogMode === 'add' ? new Date().toISOString() : selectedLoad.createdAt
       };
-      
+
       let updatedLoads;
       if (dialogMode === 'add') {
         updatedLoads = [...loads, loadData];
         setSnackbar({ open: true, message: 'Load created successfully!', severity: 'success' });
       } else if (dialogMode === 'edit') {
-        updatedLoads = loads.map(load => 
+        updatedLoads = loads.map(load =>
           load.id === selectedLoad.id ? loadData : load
         );
         setSnackbar({ open: true, message: 'Load updated successfully!', severity: 'success' });
       }
-      
+
       setLoads(updatedLoads);
       saveLoadsToStorage(updatedLoads);
     } catch (error) {
@@ -449,7 +984,7 @@ const LoadManagement = () => {
   const handleDeleteLoad = (loadId) => {
     const load = loads.find(l => l.id === loadId);
     const loadNumber = load ? load.loadNumber : 'Load';
-    
+
     if (!window.confirm(`Are you sure you want to delete ${loadNumber}? This action cannot be undone.`)) {
       handleCloseMenu();
       return;
@@ -459,20 +994,197 @@ const LoadManagement = () => {
       const updatedLoads = loads.filter(load => load.id !== loadId);
       setLoads(updatedLoads);
       saveLoadsToStorage(updatedLoads);
-      setSnackbar({ 
-        open: true, 
-        message: `${loadNumber} deleted successfully!`, 
-        severity: 'success' 
+      setSnackbar({
+        open: true,
+        message: `${loadNumber} deleted successfully!`,
+        severity: 'success'
       });
     } catch (error) {
       console.error('Error deleting load:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Failed to delete load', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete load',
+        severity: 'error'
       });
     }
     handleCloseMenu();
+  };
+
+  // Inline editing handlers
+  const handleCellClick = (loadId, field, currentValue, event) => {
+    if (field === 'actions' || field === 'rateConfirmation' || field === 'proofOfDelivery') return;
+
+    setEditingCell({ loadId, field });
+    setEditingValue(currentValue || '');
+
+    // For dropdown fields, show popper
+    if (field === 'status' || field === 'driver' || field === 'customer') {
+      setPopperAnchorEl(event.currentTarget);
+      setPopperField(field);
+    }
+  };
+
+  const handleCellSave = () => {
+    if (!editingCell.loadId || !editingCell.field) return;
+
+    const updatedLoads = loads.map(load => {
+      if (load.id === editingCell.loadId) {
+        const updatedLoad = { ...load };
+
+        if (editingCell.field === 'pickupLocation') {
+          const [city, province] = editingValue.split(', ');
+          updatedLoad.origin = { ...updatedLoad.origin, city: city || '', province: province || '' };
+        } else if (editingCell.field === 'deliveryLocation') {
+          const [city, province] = editingValue.split(', ');
+          updatedLoad.destination = { ...updatedLoad.destination, city: city || '', province: province || '' };
+        } else if (editingCell.field === 'rate') {
+          updatedLoad.rate = parseFloat(editingValue) || 0;
+        } else {
+          updatedLoad[editingCell.field] = editingValue;
+        }
+
+        return updatedLoad;
+      }
+      return load;
+    });
+
+    setLoads(updatedLoads);
+    saveLoadsToStorage(updatedLoads);
+    handleCellCancel();
+
+    setSnackbar({
+      open: true,
+      message: 'Load updated successfully!',
+      severity: 'success'
+    });
+  };
+
+  const handleCellCancel = () => {
+    setEditingCell({ loadId: null, field: null });
+    setEditingValue('');
+    setPopperAnchorEl(null);
+    setPopperField(null);
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleCellSave();
+    } else if (event.key === 'Escape') {
+      handleCellCancel();
+    }
+  };
+
+  const renderEditableCell = (load, field, displayValue, cellProps = {}) => {
+    const isEditing = editingCell.loadId === load.id && editingCell.field === field;
+
+    if (isEditing && (field === 'status' || field === 'driver' || field === 'customer')) {
+      return (
+        <TableCell {...cellProps} sx={{ ...cellProps.sx, p: 0, position: 'relative' }}>
+          <Box sx={{
+            p: 2,
+            border: '2px solid #4F46E5',
+            borderRadius: 1,
+            bgcolor: '#EEF2FF',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            {displayValue}
+          </Box>
+        </TableCell>
+      );
+    }
+
+    if (isEditing) {
+      return (
+        <TableCell {...cellProps} sx={{ ...cellProps.sx, p: 1 }}>
+          <ClickAwayListener onClickAway={handleCellSave}>
+            <TextField
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              autoFocus
+              fullWidth
+              variant="outlined"
+              size="small"
+              multiline={field === 'notes'}
+              rows={field === 'notes' ? 3 : 1}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  border: '2px solid #4F46E5',
+                  borderRadius: 1,
+                  bgcolor: '#EEF2FF',
+                  fontSize: '0.875rem',
+                  '&:hover': {
+                    borderColor: '#4F46E5'
+                  },
+                  '&.Mui-focused': {
+                    borderColor: '#4F46E5'
+                  }
+                }
+              }}
+            />
+          </ClickAwayListener>
+        </TableCell>
+      );
+    }
+
+    return (
+      <TableCell
+        {...cellProps}
+        onClick={(e) => handleCellClick(load.id, field,
+          field === 'pickupLocation' ? `${load.origin.city}, ${load.origin.province}` :
+          field === 'deliveryLocation' ? `${load.destination.city}, ${load.destination.province}` :
+          field === 'rate' ? load.rate.toString() :
+          load[field], e)}
+        sx={{
+          ...cellProps.sx,
+          cursor: 'pointer',
+          '&:hover': {
+            bgcolor: '#F8FAFC',
+            '& .edit-indicator': {
+              opacity: 1
+            }
+          },
+          position: 'relative'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {displayValue}
+          <Box
+            className="edit-indicator"
+            sx={{
+              opacity: 0,
+              ml: 1,
+              fontSize: '0.7rem',
+              color: '#6B7280',
+              transition: 'opacity 0.2s'
+            }}
+          >
+            ✏️
+          </Box>
+        </Box>
+      </TableCell>
+    );
+  };
+
+  const getStatusChip = (status) => {
+    const statusConfig = getStatusColor(status);
+    return (
+      <Chip
+        label={statusConfig.label}
+        size="small"
+        sx={{
+          bgcolor: statusConfig.bgcolor,
+          color: statusConfig.color,
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          border: 'none',
+          '& .MuiChip-label': { px: 2 }
+        }}
+      />
+    );
   };
 
   const handleMenuClick = (event, loadId) => {
@@ -778,10 +1490,13 @@ const LoadManagement = () => {
     { code: 'WY', name: 'Wyoming' }
   ];
 
-  return (
-    <Box sx={{ p: 4, bgcolor: '#F8FAFC', minHeight: '100vh' }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
+  console.log('🚛 LoadManagement component is rendering...');
+
+  try {
+    return (
+      <Box sx={{ p: 4, bgcolor: '#F5F7FA', minHeight: '100vh' }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
@@ -808,7 +1523,7 @@ const LoadManagement = () => {
         <Card sx={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
           <CardContent sx={{ p: 3 }}>
             <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
                   placeholder="Search loads..."
@@ -824,7 +1539,7 @@ const LoadManagement = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Status Filter</InputLabel>
                   <Select
@@ -840,96 +1555,203 @@ const LoadManagement = () => {
                   </Select>
                 </FormControl>
               </Grid>
+              <Grid item xs={12} md={4}>
+                <Button
+                  variant={showUpcoming ? "contained" : "outlined"}
+                  fullWidth
+                  onClick={() => setShowUpcoming(!showUpcoming)}
+                  sx={{
+                    height: '56px',
+                    bgcolor: showUpcoming ? '#059669' : 'transparent',
+                    borderColor: showUpcoming ? '#059669' : '#E5E7EB',
+                    color: showUpcoming ? 'white' : '#374151',
+                    '&:hover': {
+                      bgcolor: showUpcoming ? '#047857' : '#F3F4F6',
+                      borderColor: showUpcoming ? '#047857' : '#D1D5DB',
+                    }
+                  }}
+                >
+                  {showUpcoming ? 'Show All Loads' : 'Upcoming This Week'}
+                </Button>
+              </Grid>
             </Grid>
           </CardContent>
         </Card>
       </Box>
 
-      {/* Loads Table */}
-      <Card sx={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
-        <TableContainer>
-          <Table>
+      {/* Loads Table - Airtable Style */}
+      <Card sx={{
+        border: '1px solid #E1E5E9',
+        borderRadius: 2,
+        boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        overflow: 'hidden'
+      }}>
+        <TableContainer sx={{ bgcolor: 'white' }}>
+          <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: '#F9FAFB' }}>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Load #</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Customer</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>MC</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Driver</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Pickup</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Delivery</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>RC</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>POD</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Actions</TableCell>
+              <TableRow sx={{
+                '& th': {
+                  bgcolor: '#FAFBFC',
+                  borderBottom: '2px solid #E1E5E9',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.025em',
+                  py: 2,
+                  px: 3,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1
+                }
+              }}>
+                <TableCell sx={{ width: '80px' }}>Date</TableCell>
+                <TableCell sx={{ width: '120px' }}>Load #</TableCell>
+                <TableCell sx={{ width: '150px' }}>Customer/Broker</TableCell>
+                <TableCell sx={{ width: '140px' }}>Driver</TableCell>
+                <TableCell sx={{ width: '160px' }}>Pickup</TableCell>
+                <TableCell sx={{ width: '160px' }}>Delivery</TableCell>
+                <TableCell sx={{ width: '150px' }}>Notes</TableCell>
+                <TableCell sx={{ width: '90px' }}>Rate</TableCell>
+                <TableCell sx={{ width: '80px', textAlign: 'center' }}>Mileage</TableCell>
+                <TableCell sx={{ width: '90px', textAlign: 'center' }}>RPM</TableCell>
+                <TableCell sx={{ width: '80px' }}>RC</TableCell>
+                <TableCell sx={{ width: '80px' }}>POD</TableCell>
+                <TableCell sx={{ width: '100px' }}>Status</TableCell>
+                <TableCell sx={{ width: '60px' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredLoads.map((load) => {
+              {!showUpcoming ? filteredLoads.map((load, index) => {
                 const statusConfig = getStatusColor(load.status);
                 return (
-                  <TableRow key={load.id} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
+                  <TableRow
+                    key={load.id}
+                    sx={{
+                      borderBottom: '1px solid #F1F3F4',
+                      '&:hover': {
+                        bgcolor: '#F8FAFC'
+                      },
+                      '&:nth-of-type(odd)': {
+                        bgcolor: index % 2 === 0 ? 'white' : '#FAFBFC'
+                      },
+                      '& td': {
+                        borderBottom: '1px solid #F1F3F4',
+                        py: 2,
+                        px: 3,
+                        fontSize: '0.875rem',
+                        verticalAlign: 'middle'
+                      }
+                    }}
+                  >
                     {/* Date */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Schedule sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ color: '#374151' }}>
-                          {new Date(load.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </Box>
+                      <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                        {new Date(load.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </Typography>
                     </TableCell>
                     {/* Load # */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <LocalShipping sx={{ color: '#4F46E5', mr: 1, fontSize: 20 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827' }}>
-                          {load.loadNumber}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    {/* Customer */}
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
-                        {load.customer}
+                    {renderEditableCell(load, 'loadNumber',
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827', fontSize: '0.8125rem' }}>
+                        {load.loadNumber}
                       </Typography>
-                    </TableCell>
-                    {/* MC */}
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#374151', fontFamily: 'monospace' }}>
-                        {load.motorCarrier}
-                      </Typography>
-                    </TableCell>
-                    {/* Driver */}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar sx={{ width: 24, height: 24, bgcolor: '#4F46E5', fontSize: '0.75rem', mr: 1 }}>
-                          {load.driver.split(' ').map(n => n[0]).join('')}
-                        </Avatar>
-                        <Typography variant="body2" sx={{ color: '#374151' }}>
-                          {load.driver}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    {/* Pickup */}
-                    <TableCell>
+                    )}
+                    {/* Customer/Broker with MC */}
+                    {renderEditableCell(load, 'customer',
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
+                        {/* Display broker if available, otherwise customer */}
+                        {load.broker ? (
+                          <>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
+                              {load.broker}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                              {getMCNumber(load.broker, 'broker')}
+                            </Typography>
+                          </>
+                        ) : (
+                          <>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
+                              {load.customer}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                              {getMCNumber(load.customer, 'customer')}
+                            </Typography>
+                          </>
+                        )}
+                      </Box>
+                    )}
+                    {/* Driver */}
+                    {renderEditableCell(load, 'driver',
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>
+                        {capitalizeWords(load.driver)}
+                      </Typography>
+                    )}
+                    {/* Pickup */}
+                    {renderEditableCell(load, 'pickupLocation',
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                           {load.origin.city}, {load.origin.province}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                          {new Date(load.pickupDate).toLocaleDateString()}
+                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                          {new Date(load.pickupDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                          {load.pickupTime && <span style={{ marginLeft: '4px' }}>{load.pickupTime}</span>}
                         </Typography>
                       </Box>
-                    </TableCell>
+                    )}
                     {/* Delivery */}
-                    <TableCell>
+                    {renderEditableCell(load, 'deliveryLocation',
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                           {load.destination.city}, {load.destination.province}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                          {new Date(load.deliveryDate).toLocaleDateString()}
+                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                          {new Date(load.deliveryDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                          {load.deliveryTime && <span style={{ marginLeft: '4px' }}>{load.deliveryTime}</span>}
                         </Typography>
+                      </Box>
+                    )}
+                    {/* Notes */}
+                    {renderEditableCell(load, 'notes',
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 400,
+                          color: '#111827',
+                          fontSize: '0.8125rem',
+                          maxWidth: '150px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {load.notes || 'No notes'}
+                        </Typography>
+                      </Box>
+                    )}
+                    {/* Rate */}
+                    {renderEditableCell(load, 'rate',
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669' }}>
+                        ${load.rate?.toLocaleString() || '0'}
+                      </Typography>
+                    )}
+                    {/* Mileage */}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <MileageDisplay origin={load.origin} destination={load.destination} />
+                      </Box>
+                    </TableCell>
+                    {/* RPM (Rate Per Mile) */}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <RPMDisplay rate={load.rate} origin={load.origin} destination={load.destination} />
                       </Box>
                     </TableCell>
                     {/* RC (Rate Confirmation) */}
@@ -1007,7 +1829,229 @@ const LoadManagement = () => {
                       </Box>
                     </TableCell>
                     {/* Status */}
+                    {renderEditableCell(load, 'status', getStatusChip(load.status))}
+                    {/* Actions */}
                     <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuClick(e, load.id)}
+                        sx={{
+                          color: '#9CA3AF',
+                          p: 0.5,
+                          '&:hover': {
+                            color: '#6B7280',
+                            bgcolor: 'rgba(107, 114, 128, 0.1)'
+                          }
+                        }}
+                      >
+                        <MoreVert sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                // Grouped view for upcoming loads
+                Object.entries(groupLoadsByDay(filteredLoads)).map(([dayName, dayLoads]) => [
+                  // Day header row
+                  <TableRow key={`header-${dayName}`}>
+                    <TableCell colSpan={9} sx={{
+                      bgcolor: '#F8FAFC',
+                      borderTop: '2px solid #E5E7EB',
+                      py: 2
+                    }}>
+                      <Typography variant="h6" sx={{
+                        fontWeight: 600,
+                        color: '#111827',
+                        fontSize: '1rem'
+                      }}>
+                        {dayName} ({dayLoads.length} load{dayLoads.length !== 1 ? 's' : ''})
+                      </Typography>
+                    </TableCell>
+                  </TableRow>,
+                  // Loads for this day
+                  ...dayLoads.map((load, index) => {
+                    const statusConfig = getStatusColor(load.status);
+                    return (
+                      <TableRow
+                        key={load.id}
+                        sx={{
+                          borderBottom: '1px solid #F1F3F4',
+                          '&:hover': {
+                            bgcolor: '#F8FAFC'
+                          },
+                          bgcolor: '#FEFEFF',
+                          '& td': {
+                            borderBottom: '1px solid #F1F3F4',
+                            py: 2,
+                            px: 3,
+                            fontSize: '0.875rem',
+                            verticalAlign: 'middle'
+                          }
+                        }}
+                      >
+                        {/* Date */}
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                            {new Date(load.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </Typography>
+                        </TableCell>
+                        {/* Load # */}
+                        {renderEditableCell(load, 'loadNumber',
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827', fontSize: '0.8125rem' }}>
+                            {load.loadNumber}
+                          </Typography>
+                        )}
+                        {/* Customer/Broker */}
+                        {renderEditableCell(load, 'customer',
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
+                              {load.customer}
+                            </Typography>
+                          </Box>
+                        )}
+                        {/* Pickup */}
+                        {renderEditableCell(load, 'pickupLocation',
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
+                              {load.origin.city}, {load.origin.province}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                              {new Date(load.pickupDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                              {load.pickupTime && <span style={{ marginLeft: '4px' }}>{load.pickupTime}</span>}
+                            </Typography>
+                          </Box>
+                        )}
+                        {/* Delivery */}
+                        {renderEditableCell(load, 'deliveryLocation',
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
+                              {load.destination.city}, {load.destination.province}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                              {new Date(load.deliveryDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                              {load.deliveryTime && <span style={{ marginLeft: '4px', fontWeight: 'bold', color: '#059669' }}>{load.deliveryTime}</span>}
+                            </Typography>
+                          </Box>
+                        )}
+                        {/* Notes */}
+                        {renderEditableCell(load, 'notes',
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="body2" sx={{
+                              fontWeight: 400,
+                              color: '#111827',
+                              fontSize: '0.8125rem',
+                              maxWidth: '150px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {load.notes || 'No notes'}
+                            </Typography>
+                          </Box>
+                        )}
+                        {/* Driver */}
+                        {renderEditableCell(load, 'driver',
+                          <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                            {load.driver}
+                          </Typography>
+                        )}
+                        {/* Rate */}
+                        {renderEditableCell(load, 'rate',
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#059669', fontSize: '0.8125rem' }}>
+                            ${load.rate ? load.rate.toLocaleString() : '0'}
+                          </Typography>
+                        )}
+                        {/* Status */}
+                        <TableCell>
+                          <Chip
+                            label={statusConfig.label}
+                            size="small"
+                            sx={{
+                              bgcolor: statusConfig.color,
+                              color: 'white',
+                              fontSize: '0.75rem',
+                              height: '24px',
+                              minWidth: '70px'
+                            }}
+                          />
+                        </TableCell>
+                        {/* Actions */}
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleMenuClick(e, load.id)}
+                          >
+                            <MoreVert fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ]).flat()
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {filteredLoads.length === 0 && (
+          <Box sx={{ p: 8, textAlign: 'center', bgcolor: '#FAFBFC' }}>
+            <LocalShipping sx={{ fontSize: 56, color: '#D1D5DB', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: '#6B7280', mb: 1, fontSize: '1.125rem' }}>
+              No loads found
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
+              {searchTerm || filterStatus !== 'all'
+                ? 'Try adjusting your search or filters'
+                : 'Get started by creating your first load'
+              }
+            </Typography>
+          </Box>
+        )}
+      </Card>
+
+      {/* Dropdown Popper for Inline Editing */}
+      <Popper
+        open={Boolean(popperAnchorEl)}
+        anchorEl={popperAnchorEl}
+        placement="bottom-start"
+        sx={{ zIndex: 1300 }}
+      >
+        <ClickAwayListener onClickAway={handleCellCancel}>
+          <Paper sx={{
+            border: '2px solid #4F46E5',
+            borderRadius: 1,
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06)',
+            minWidth: 200,
+            maxHeight: 300,
+            overflow: 'auto'
+          }}>
+            {popperField === 'status' && (
+              <Box>
+                {['pending', 'in_transit', 'delivered', 'delayed'].map((status) => {
+                  const statusConfig = getStatusColor(status);
+                  return (
+                    <Box
+                      key={status}
+                      onClick={() => {
+                        setEditingValue(status);
+                        setTimeout(handleCellSave, 100);
+                      }}
+                      sx={{
+                        p: 2,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: '#F8FAFC' },
+                        borderBottom: '1px solid #F1F3F4'
+                      }}
+                    >
                       <Chip
                         label={statusConfig.label}
                         size="small"
@@ -1018,39 +2062,75 @@ const LoadManagement = () => {
                           fontSize: '0.75rem'
                         }}
                       />
-                    </TableCell>
-                    {/* Actions */}
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuClick(e, load.id)}
-                        sx={{ color: '#6B7280' }}
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
 
-        {filteredLoads.length === 0 && (
-          <Box sx={{ p: 6, textAlign: 'center' }}>
-            <LocalShipping sx={{ fontSize: 64, color: '#D1D5DB', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#6B7280', mb: 1 }}>
-              No loads found
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              {searchTerm || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Get started by creating your first load'
-              }
-            </Typography>
-          </Box>
-        )}
-      </Card>
+            {popperField === 'driver' && (
+              <Box>
+                {availableDrivers.map((driver) => (
+                  <Box
+                    key={driver.id}
+                    onClick={() => {
+                      setEditingValue(driver.name);
+                      setTimeout(handleCellSave, 100);
+                    }}
+                    sx={{
+                      p: 2,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: '#F8FAFC' },
+                      borderBottom: '1px solid #F1F3F4',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: '#374151',
+                        mr: 2
+                      }}
+                    >
+                      {capitalizeWords(driver.name)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            {popperField === 'customer' && (
+              <Box>
+                {availableCustomers.map((customer) => (
+                  <Box
+                    key={customer.id}
+                    onClick={() => {
+                      setEditingValue(customer.company);
+                      setTimeout(handleCellSave, 100);
+                    }}
+                    sx={{
+                      p: 2,
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: '#F8FAFC' },
+                      borderBottom: '1px solid #F1F3F4'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {customer.company}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                      {customer.contactPerson}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </ClickAwayListener>
+      </Popper>
 
       {/* Action Menu */}
       <Menu
@@ -1167,15 +2247,16 @@ const LoadManagement = () => {
                     options={availableCustomers}
                     getOptionLabel={(option) => {
                       if (typeof option === 'string') return option;
-                      return option.company || '';
+                      return option?.company || '';
                     }}
-                    value={formData.customer}
+                    value={formData.customer || ''}
                     onChange={(event, newValue) => {
                       const customerName = typeof newValue === 'string' ? newValue : (newValue?.company || '');
                       setFormData({ ...formData, customer: customerName });
                     }}
+                    inputValue={formData.customer || ''}
                     onInputChange={(event, newInputValue) => {
-                      setFormData({ ...formData, customer: newInputValue });
+                      setFormData({ ...formData, customer: newInputValue || '' });
                     }}
                     disabled={dialogMode === 'view'}
                     renderInput={(params) => (
@@ -1216,15 +2297,16 @@ const LoadManagement = () => {
                     options={availableBrokers}
                     getOptionLabel={(option) => {
                       if (typeof option === 'string') return option;
-                      return option.company || '';
+                      return option?.company || '';
                     }}
-                    value={formData.broker}
+                    value={formData.broker || ''}
                     onChange={(event, newValue) => {
                       const brokerName = typeof newValue === 'string' ? newValue : (newValue?.company || '');
                       setFormData({ ...formData, broker: brokerName });
                     }}
+                    inputValue={formData.broker || ''}
                     onInputChange={(event, newInputValue) => {
-                      setFormData({ ...formData, broker: newInputValue });
+                      setFormData({ ...formData, broker: newInputValue || '' });
                     }}
                     disabled={dialogMode === 'view'}
                     renderInput={(params) => (
@@ -1276,7 +2358,7 @@ const LoadManagement = () => {
                     <Schedule sx={{ color: '#2563EB', fontSize: 14 }} />
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={5.75}>
+                <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
                     label="Pickup Date"
@@ -1296,13 +2378,53 @@ const LoadManagement = () => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} md={5.75}>
+                <Grid item xs={12} md={1.75}>
+                  <TextField
+                    fullWidth
+                    label="Pickup Time"
+                    type="time"
+                    value={formData.pickupTime || ''}
+                    onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
+                    disabled={dialogMode === 'view'}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        height: '56px',
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#2563EB'
+                        }
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
                     label="Delivery Date"
                     type="date"
                     value={formData.deliveryDate}
                     onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+                    disabled={dialogMode === 'view'}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        height: '56px',
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#2563EB'
+                        }
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={1.75}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Time"
+                    type="time"
+                    value={formData.deliveryTime || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
                     disabled={dialogMode === 'view'}
                     InputLabelProps={{ shrink: true }}
                     sx={{
@@ -1518,18 +2640,23 @@ const LoadManagement = () => {
                     renderOption={(props, option) => (
                       <Box component="li" {...props} sx={{ minHeight: 56, fontSize: '1rem' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                          <Person sx={{ mr: 2, fontSize: 20, color: '#6B7280' }} />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                              {option.name}
-                            </Typography>
-                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              color: '#374151',
+                              mr: 2
+                            }}
+                          >
+                            {capitalizeWords(option.name)}
+                          </Typography>
                           {option.status && (
                             <Chip
                               size="small"
                               label={option.status}
-                              sx={{ 
-                                ml: 1, 
+                              sx={{
+                                ml: 1,
                                 bgcolor: option.status === 'active' || option.status === 'available' ? '#D1FAE5' : '#FEE2E2',
                                 color: option.status === 'active' || option.status === 'available' ? '#059669' : '#DC2626',
                                 fontSize: '0.75rem',
@@ -1615,6 +2742,32 @@ const LoadManagement = () => {
                       </MenuItem>
                     </Select>
                   </FormControl>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Notes Section */}
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Notes"
+                    multiline
+                    rows={3}
+                    placeholder="Add any additional notes or comments for this load..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    disabled={dialogMode === 'view'}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#10B981'
+                        }
+                      }
+                    }}
+                  />
                 </Grid>
               </Grid>
             </Box>
@@ -2155,6 +3308,19 @@ const LoadManagement = () => {
       </Snackbar>
     </Box>
   );
+  } catch (error) {
+    console.error('🚨 LoadManagement render error:', error);
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography variant="h4" color="error">
+          Load Management Error
+        </Typography>
+        <Typography variant="body1" sx={{ mt: 2 }}>
+          There was an error loading the Load Management page: {error.message}
+        </Typography>
+      </Box>
+    );
+  }
 };
 
 export default LoadManagement;

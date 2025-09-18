@@ -77,7 +77,8 @@ const CustomerManagement = () => {
       paymentTerms: 'Net 30',
       creditLimit: 500000,
       industry: 'Retail',
-      notes: 'Major retail client, priority handling'
+      notes: 'Major retail client, priority handling',
+      motorCarrier: 'MC-111222'
     },
     {
       id: 'C-002',
@@ -95,7 +96,8 @@ const CustomerManagement = () => {
       paymentTerms: 'Net 45',
       creditLimit: 300000,
       industry: 'Retail',
-      notes: 'Seasonal volume spikes during holidays'
+      notes: 'Seasonal volume spikes during holidays',
+      motorCarrier: 'MC-333444'
     },
     {
       id: 'C-003',
@@ -113,7 +115,8 @@ const CustomerManagement = () => {
       paymentTerms: 'Net 30',
       creditLimit: 250000,
       industry: 'Pharmacy',
-      notes: 'Pharmaceutical deliveries, temperature controlled'
+      notes: 'Pharmaceutical deliveries, temperature controlled',
+      motorCarrier: 'MC-555666'
     },
     {
       id: 'C-004',
@@ -131,7 +134,8 @@ const CustomerManagement = () => {
       paymentTerms: 'Net 15',
       creditLimit: 200000,
       industry: 'Grocery',
-      notes: 'Fresh produce deliveries, time-sensitive'
+      notes: 'Fresh produce deliveries, time-sensitive',
+      motorCarrier: 'MC-777888'
     },
     {
       id: 'C-005',
@@ -149,7 +153,8 @@ const CustomerManagement = () => {
       paymentTerms: 'Net 60',
       creditLimit: 150000,
       industry: 'Home Improvement',
-      notes: 'New customer, building materials shipments'
+      notes: 'New customer, building materials shipments',
+      motorCarrier: 'MC-999000'
     }
   ];
 
@@ -163,7 +168,8 @@ const CustomerManagement = () => {
     paymentTerms: 'Net 30',
     creditLimit: '',
     notes: '',
-    status: 'active'
+    status: 'active',
+    motorCarrier: ''
   });
 
   // Load customers from localStorage and calculate totals from load data
@@ -290,7 +296,8 @@ const CustomerManagement = () => {
         paymentTerms: customer.paymentTerms,
         creditLimit: customer.creditLimit,
         notes: customer.notes,
-        status: customer.status
+        status: customer.status,
+        motorCarrier: customer.motorCarrier || ''
       });
     } else {
       setFormData({
@@ -332,7 +339,8 @@ const CustomerManagement = () => {
         joinedDate: new Date().toISOString(),
         paymentTerms: formData.paymentTerms,
         creditLimit: parseInt(formData.creditLimit) || 0,
-        notes: formData.notes
+        notes: formData.notes,
+        motorCarrier: formData.motorCarrier || ''
       };
       
       const updatedCustomers = [...customers, newCustomer];
@@ -357,7 +365,8 @@ const CustomerManagement = () => {
           status: formData.status,
           paymentTerms: formData.paymentTerms,
           creditLimit: parseInt(formData.creditLimit) || 0,
-          notes: formData.notes
+          notes: formData.notes,
+          motorCarrier: formData.motorCarrier || ''
         } : customer
       );
       
@@ -779,6 +788,16 @@ const CustomerManagement = () => {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={dialogMode === 'view'}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Motor Carrier (MC)"
+                value={formData.motorCarrier}
+                onChange={(e) => setFormData({ ...formData, motorCarrier: e.target.value })}
+                disabled={dialogMode === 'view'}
+                placeholder="e.g. MC-123456"
               />
             </Grid>
             <Grid item xs={12}>

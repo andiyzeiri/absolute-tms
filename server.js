@@ -60,7 +60,7 @@ app.use(helmet({
   frameguard: false, // Allow iframe embedding for PDF viewing
 }));
 
-// Rate limiting
+// Rate limiting - Configure for AWS Lambda environment
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -70,6 +70,8 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip rate limiting in AWS Lambda environment due to trust proxy issues
+  skip: (req) => process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR,
 });
 
 app.use(limiter);
@@ -153,6 +155,14 @@ app.use('/api/eld', eldRoutes);
 // Vehicle routes (for fleet management)
 const vehicleRoutes = require('./routes/vehicles');
 app.use('/api/vehicles', vehicleRoutes);
+
+// Maps routes (for distance calculations)
+const mapsRoutes = require('./routes/maps');
+app.use('/api/maps', mapsRoutes);
+
+// Gmail routes (for email integration)
+const gmailRoutes = require('./routes/gmail');
+app.use('/api/gmail', gmailRoutes);
 
 // Dashboard stats endpoint (fallback to demo data)
 app.get('/api/dashboard/stats', (req, res) => {

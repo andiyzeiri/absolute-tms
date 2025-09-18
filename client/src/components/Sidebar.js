@@ -25,7 +25,8 @@ import {
   Group,
   Payment,
   LocalGasStation,
-  Speed
+  Speed,
+  Email
 } from '@mui/icons-material';
 
 const menuItems = [
@@ -39,6 +40,7 @@ const menuItems = [
   { text: 'Payroll', icon: <Payment />, path: 'payroll', adminOnly: true },
   { text: 'Fuel Management', icon: <LocalGasStation />, path: 'fuel' },
   { text: 'ELD Management', icon: <Speed />, path: 'eld' },
+  { text: 'Email Integration', icon: <Email />, path: 'email' },
   { text: 'Rate Confirmations', icon: <Description />, path: 'rate-confirmations' },
   { text: 'Settings', icon: <Settings />, path: 'settings' }
 ];

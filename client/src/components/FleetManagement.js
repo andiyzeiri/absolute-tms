@@ -50,7 +50,11 @@ import {
 } from '@mui/icons-material';
 
 const FleetManagement = () => {
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState(() => {
+    // Try to load vehicles from localStorage first
+    const savedVehicles = localStorage.getItem('tms_vehicles');
+    return savedVehicles ? JSON.parse(savedVehicles) : [];
+  });
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -180,8 +184,20 @@ const FleetManagement = () => {
   });
 
   useEffect(() => {
-    fetchVehicles();
-  }, []);
+    // Only fetch from API if no saved vehicles exist
+    if (vehicles.length === 0) {
+      fetchVehicles();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save vehicles to localStorage whenever vehicles state changes
+  useEffect(() => {
+    if (vehicles.length > 0) {
+      localStorage.setItem('tms_vehicles', JSON.stringify(vehicles));
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('vehiclesUpdated'));
+    }
+  }, [vehicles]);
 
   // Helper function to normalize vehicle data from API to frontend format
   const normalizeVehicle = (vehicle) => {
@@ -217,6 +233,14 @@ const FleetManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
+
+      // If no token, use demo data immediately
+      if (!token) {
+        setVehicles(demoVehicles);
+        setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+        return;
+      }
+
       const response = await fetch('/api/vehicles', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,13 +256,17 @@ const FleetManagement = () => {
         console.error('Failed to fetch vehicles:', response.statusText);
         // Fallback to demo data if API fails
         setVehicles(demoVehicles);
-        setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+        setSnackbar({
+          open: true,
+          message: response.status === 401 ? 'Session expired - using demo data' : 'Using demo data - API unavailable',
+          severity: 'warning'
+        });
       }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
       // Fallback to demo data if API fails
       setVehicles(demoVehicles);
-      setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+      setSnackbar({ open: true, message: 'Using demo data - API unavailable', severity: 'warning' });
     } finally {
       setLoading(false);
     }
@@ -326,69 +354,171 @@ const FleetManagement = () => {
     try {
       const token = localStorage.getItem('accessToken');
 
-      // Prepare vehicle data for API
-      const vehicleData = {
-        vehicleNumber: formData.vehicleNumber,
-        make: formData.make,
-        model: formData.model,
-        year: parseInt(formData.year),
-        type: formData.type.toLowerCase(), // API expects lowercase
-        registration: {
-          plateNumber: formData.plateNumber,
-          vinNumber: formData.vin
-        },
-        status: formData.status,
-        maintenance: {
-          odometerReading: parseInt(formData.mileage) || 0,
-          lastServiceDate: new Date(),
-          nextServiceDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-        },
-        insurance: {
-          provider: formData.insuranceProvider,
-          policyNumber: formData.policyNumber,
-          expiryDate: new Date(formData.insuranceExpiry)
-        },
-        location: {
-          currentAddress: 'Base Location'
-        }
-      };
-
       if (dialogMode === 'add') {
-        const response = await fetch('/api/vehicles', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        // Generate a unique ID for the new vehicle
+        const newId = 'V-' + String(vehicles.length + 1).padStart(3, '0');
+
+        const newVehicle = {
+          id: newId,
+          vehicleNumber: formData.vehicleNumber,
+          make: formData.make,
+          model: formData.model,
+          year: parseInt(formData.year),
+          type: formData.type,
+          plateNumber: formData.plateNumber,
+          vin: formData.vin,
+          driver: formData.driver || 'Unassigned',
+          status: formData.status,
+          location: 'Base Location',
+          mileage: parseInt(formData.mileage) || 0,
+          fuelLevel: parseInt(formData.fuelLevel) || Math.floor(Math.random() * 100),
+          lastService: new Date().toISOString(),
+          nextService: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+          insurance: {
+            provider: formData.insuranceProvider || 'Fleet Insurance Co.',
+            policyNumber: formData.policyNumber || 'FL-' + newId,
+            expiryDate: formData.insuranceExpiry ? new Date(formData.insuranceExpiry).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
           },
-          body: JSON.stringify(vehicleData)
+          alerts: []
+        };
+
+        if (token) {
+          // Try API first if authenticated
+          try {
+            const vehicleData = {
+              vehicleNumber: formData.vehicleNumber,
+              make: formData.make,
+              model: formData.model,
+              year: parseInt(formData.year),
+              type: formData.type.toLowerCase(),
+              registration: {
+                plateNumber: formData.plateNumber,
+                vinNumber: formData.vin
+              },
+              status: formData.status,
+              maintenance: {
+                odometerReading: parseInt(formData.mileage) || 0,
+                lastServiceDate: new Date(),
+                nextServiceDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+              },
+              insurance: {
+                provider: formData.insuranceProvider,
+                policyNumber: formData.policyNumber,
+                expiryDate: new Date(formData.insuranceExpiry)
+              },
+              location: {
+                currentAddress: 'Base Location'
+              }
+            };
+
+            const response = await fetch('/api/vehicles', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(vehicleData)
+            });
+
+            if (response.ok) {
+              setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
+              fetchVehicles(); // Refresh the list
+              handleCloseDialog();
+              return;
+            }
+          } catch (error) {
+            console.log('API failed, saving locally:', error);
+          }
+        }
+
+        // Add to local state (will automatically save to localStorage via useEffect)
+        setVehicles([...vehicles, newVehicle]);
+        setSnackbar({
+          open: true,
+          message: token ? 'Vehicle added to demo data (API unavailable)' : 'Vehicle added to demo data!',
+          severity: 'success'
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
-          fetchVehicles(); // Refresh the list
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to add vehicle');
-        }
       } else if (dialogMode === 'edit') {
-        const response = await fetch(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(vehicleData)
-        });
+        const updatedVehicle = {
+          ...selectedVehicle,
+          vehicleNumber: formData.vehicleNumber,
+          make: formData.make,
+          model: formData.model,
+          year: parseInt(formData.year),
+          type: formData.type,
+          plateNumber: formData.plateNumber,
+          vin: formData.vin,
+          driver: formData.driver || 'Unassigned',
+          status: formData.status,
+          mileage: parseInt(formData.mileage) || selectedVehicle.mileage,
+          fuelLevel: parseInt(formData.fuelLevel) || selectedVehicle.fuelLevel,
+          insurance: {
+            provider: formData.insuranceProvider || selectedVehicle.insurance.provider,
+            policyNumber: formData.policyNumber || selectedVehicle.insurance.policyNumber,
+            expiryDate: formData.insuranceExpiry ? new Date(formData.insuranceExpiry).toISOString() : selectedVehicle.insurance.expiryDate
+          }
+        };
 
-        if (response.ok) {
-          const data = await response.json();
-          setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
-          fetchVehicles(); // Refresh the list
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to update vehicle');
+        if (token) {
+          // Try API first if authenticated
+          try {
+            const vehicleData = {
+              vehicleNumber: formData.vehicleNumber,
+              make: formData.make,
+              model: formData.model,
+              year: parseInt(formData.year),
+              type: formData.type.toLowerCase(),
+              registration: {
+                plateNumber: formData.plateNumber,
+                vinNumber: formData.vin
+              },
+              status: formData.status,
+              maintenance: {
+                odometerReading: parseInt(formData.mileage) || 0,
+                lastServiceDate: selectedVehicle.lastService || new Date(),
+                nextServiceDate: selectedVehicle.nextService || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+              },
+              insurance: {
+                provider: formData.insuranceProvider,
+                policyNumber: formData.policyNumber,
+                expiryDate: new Date(formData.insuranceExpiry)
+              },
+              location: {
+                currentAddress: selectedVehicle.location || 'Base Location'
+              }
+            };
+
+            const response = await fetch(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(vehicleData)
+            });
+
+            if (response.ok) {
+              setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
+              fetchVehicles(); // Refresh the list
+              handleCloseDialog();
+              return;
+            }
+          } catch (error) {
+            console.log('API failed, saving locally:', error);
+          }
         }
+
+        // Update local state
+        const updatedVehicles = vehicles.map(vehicle =>
+          vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
+        );
+        setVehicles(updatedVehicles);
+        setSnackbar({
+          open: true,
+          message: token ? 'Vehicle updated in demo data (API unavailable)' : 'Vehicle updated in demo data!',
+          severity: 'success'
+        });
       }
 
       handleCloseDialog();
@@ -401,23 +531,48 @@ const FleetManagement = () => {
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    const vehicleName = vehicle ? `${vehicle.vehicleNumber} (${vehicle.make} ${vehicle.model})` : 'Vehicle';
+
+    if (!window.confirm(`Are you sure you want to delete ${vehicleName}? This action cannot be undone.`)) {
+      handleCloseMenu();
+      return;
+    }
+
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`/api/vehicles/${vehicleId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+
+      if (token) {
+        // Try API first if authenticated
+        try {
+          const response = await fetch(`/api/vehicles/${vehicleId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
+            fetchVehicles(); // Refresh the list
+            handleCloseMenu();
+            return;
+          }
+        } catch (error) {
+          console.log('API failed, deleting locally:', error);
         }
+      }
+
+      // Delete from local state
+      const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
+      setVehicles(updatedVehicles);
+      setSnackbar({
+        open: true,
+        message: token ? 'Vehicle deleted from demo data (API unavailable)' : 'Vehicle deleted from demo data!',
+        severity: 'success'
       });
 
-      if (response.ok) {
-        setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
-        fetchVehicles(); // Refresh the list
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete vehicle');
-      }
     } catch (error) {
       console.error('Error deleting vehicle:', error);
       setSnackbar({ open: true, message: error.message || 'Error deleting vehicle', severity: 'error' });

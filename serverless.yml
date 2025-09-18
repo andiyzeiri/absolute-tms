@@ -39,21 +39,31 @@ functions:
           path: /{proxy+}
           method: ANY
           cors:
-            origin: ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+            origins:
+              - https://overdrivetms2025.netlify.app
+              - https://overdrivetms.com
+              - http://localhost:3000
             headers:
               - Content-Type
               - Authorization
               - Accept
+              - X-Requested-With
+              - Origin
             allowCredentials: true
       - http:
           path: /
           method: ANY
           cors:
-            origin: ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+            origins:
+              - https://overdrivetms2025.netlify.app
+              - https://overdrivetms.com
+              - http://localhost:3000
             headers:
               - Content-Type
               - Authorization
               - Accept
+              - X-Requested-With
+              - Origin
             allowCredentials: true
 
 resources:
@@ -72,7 +82,8 @@ resources:
                 - POST
                 - DELETE
               AllowedOrigins:
-                - ${env:CORS_ORIGIN, 'https://overdrivetms2025.netlify.app'}
+                - https://overdrivetms2025.netlify.app
+                - https://overdrivetms.com
                 - http://localhost:3000
               MaxAge: 3600
 

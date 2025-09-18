@@ -22,7 +22,6 @@ import {
   Select,
   MenuItem,
   Grid,
-  Avatar,
   Menu,
   Divider,
   Alert,
@@ -53,6 +52,14 @@ import {
 import axios from 'axios';
 
 const DriverManagement = () => {
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str) => {
+    if (!str) return '';
+    return str.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const [drivers, setDrivers] = useState(() => {
     // Try to load drivers from localStorage first
     const savedDrivers = localStorage.getItem('tms_drivers');
@@ -510,7 +517,7 @@ const DriverManagement = () => {
 
   const handleDeleteDriver = async (driverId) => {
     const driver = drivers.find(d => d.id === driverId);
-    const driverName = driver ? `${driver.firstName} ${driver.lastName}` : 'Driver';
+    const driverName = driver ? capitalizeWords(`${driver.firstName} ${driver.lastName}`) : 'Driver';
     
     if (!window.confirm(`Are you sure you want to delete ${driverName}? This action cannot be undone.`)) {
       handleCloseMenu();
@@ -567,9 +574,6 @@ const DriverManagement = () => {
     return phone; // Return original if can't format
   };
 
-  const getDriverTypeColor = (driverType) => {
-    return driverType === 'owner_operator' ? '#DC2626' : '#4F46E5'; // Red for owner operator, blue for company
-  };
 
   const addBill = () => {
     if (newBill.description && newBill.amount) {
@@ -706,25 +710,13 @@ const DriverManagement = () => {
                 return (
                   <TableRow key={driver.id} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar sx={{ 
-                          width: 40, 
-                          height: 40, 
-                          bgcolor: getDriverTypeColor(driver.driverType), 
-                          mr: 2,
-                          fontSize: '1rem',
-                          fontWeight: 600
-                        }}>
-                          {driver.firstName[0]}{driver.lastName[0]}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827' }}>
-                            {driver.firstName} {driver.lastName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                            Age {driver.age} • {driver.yearsExperience} years exp
-                          </Typography>
-                        </Box>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#111827' }}>
+                          {capitalizeWords(`${driver.firstName} ${driver.lastName}`)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          Age {driver.age} • {driver.yearsExperience} years exp
+                        </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
