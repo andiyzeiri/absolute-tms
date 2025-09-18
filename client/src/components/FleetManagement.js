@@ -11,7 +11,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -28,8 +27,6 @@ import {
   Divider,
   Alert,
   Snackbar,
-  LinearProgress,
-  Badge,
   ClickAwayListener
 } from '@mui/material';
 import {
@@ -41,13 +38,10 @@ import {
   FilterList,
   Download,
   DirectionsCar,
-  LocationOn,
   Build,
-  Warning,
   CheckCircle,
   Close,
-  Speed,
-  LocalGasStation
+  Speed
 } from '@mui/icons-material';
 
 const FleetManagement = () => {
@@ -217,25 +211,6 @@ const FleetManagement = () => {
     }
   }, [vehicles]);
 
-  const getStatusConfig = (status) => {
-    const statusConfigs = {
-      active: { bgcolor: '#D1FAE5', color: '#059669', label: 'Active' },
-      in_transit: { bgcolor: '#DBEAFE', color: '#2563EB', label: 'In Transit' },
-      maintenance: { bgcolor: '#FEF3C7', color: '#D97706', label: 'Maintenance' },
-      inactive: { bgcolor: '#F3F4F6', color: '#6B7280', label: 'Inactive' }
-    };
-    return statusConfigs[status] || statusConfigs.active;
-  };
-
-  const getAlertSeverityColor = (severity) => {
-    const colors = {
-      low: '#10B981',
-      medium: '#F59E0B',
-      high: '#EF4444',
-      critical: '#DC2626'
-    };
-    return colors[severity] || colors.medium;
-  };
 
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesSearch = vehicle.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -420,7 +395,7 @@ const FleetManagement = () => {
 
   // Inline editing handlers
   const handleCellClick = (vehicleId, field, currentValue, event) => {
-    if (field === 'actions' || field === 'alerts') return;
+    if (field === 'actions') return;
     setEditingCell({ vehicleId, field });
     setEditingValue(currentValue.toString());
   };
@@ -434,8 +409,6 @@ const FleetManagement = () => {
 
         if (editingCell.field === 'mileage') {
           updatedVehicle.mileage = parseInt(editingValue) || 0;
-        } else if (editingCell.field === 'fuelLevel') {
-          updatedVehicle.fuelLevel = Math.min(100, Math.max(0, parseInt(editingValue) || 0));
         } else {
           updatedVehicle[editingCell.field] = editingValue;
         }
@@ -468,28 +441,6 @@ const FleetManagement = () => {
   const renderEditableCell = (vehicle, field, displayValue, cellProps = {}) => {
     const isEditing = editingCell.vehicleId === vehicle.id && editingCell.field === field;
 
-    if (isEditing && field === 'status') {
-      return (
-        <TableCell {...cellProps}>
-          <ClickAwayListener onClickAway={handleCellSave}>
-            <Select
-              value={editingValue}
-              onChange={(e) => setEditingValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              autoFocus
-              size="small"
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="in_transit">In Transit</MenuItem>
-              <MenuItem value="maintenance">Maintenance</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-            </Select>
-          </ClickAwayListener>
-        </TableCell>
-      );
-    }
-
     if (isEditing) {
       return (
         <TableCell {...cellProps} sx={{ ...cellProps.sx, p: 1 }}>
@@ -501,11 +452,7 @@ const FleetManagement = () => {
               autoFocus
               size="small"
               variant="standard"
-              type={field === 'mileage' || field === 'fuelLevel' ? 'number' : 'text'}
-              inputProps={{
-                min: field === 'fuelLevel' ? 0 : undefined,
-                max: field === 'fuelLevel' ? 100 : undefined
-              }}
+              type={field === 'mileage' ? 'number' : 'text'}
               sx={{ '& .MuiInput-underline:before': { borderBottom: 'none' } }}
             />
           </ClickAwayListener>
@@ -518,10 +465,7 @@ const FleetManagement = () => {
         {...cellProps}
         onClick={(e) => handleCellClick(vehicle.id, field,
           field === 'mileage' ? vehicle.mileage :
-          field === 'fuelLevel' ? vehicle.fuelLevel :
           field === 'driver' ? vehicle.driver || '' :
-          field === 'location' ? vehicle.location :
-          field === 'status' ? vehicle.status :
           displayValue, e
         )}
         sx={{
@@ -690,17 +634,12 @@ const FleetManagement = () => {
               <TableRow sx={{ bgcolor: '#F9FAFB' }}>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Vehicle</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Driver</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Location</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Mileage</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Fuel</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Alerts</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: '#374151' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredVehicles.map((vehicle) => {
-                const statusConfig = getStatusConfig(vehicle.status);
                 return (
                   <TableRow key={vehicle.id} sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
                     <TableCell>
@@ -732,26 +671,6 @@ const FleetManagement = () => {
                         </Typography>
                       )
                     )}
-                    {renderEditableCell(vehicle, 'status',
-                      <Chip
-                        label={statusConfig.label}
-                        size="small"
-                        sx={{
-                          bgcolor: statusConfig.bgcolor,
-                          color: statusConfig.color,
-                          fontWeight: 600,
-                          fontSize: '0.75rem'
-                        }}
-                      />
-                    )}
-                    {renderEditableCell(vehicle, 'location',
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <LocationOn sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
-                        <Typography variant="body2" sx={{ color: '#374151' }}>
-                          {vehicle.location}
-                        </Typography>
-                      </Box>
-                    )}
                     {renderEditableCell(vehicle, 'mileage',
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Speed sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
@@ -760,37 +679,6 @@ const FleetManagement = () => {
                         </Typography>
                       </Box>
                     )}
-                    {renderEditableCell(vehicle, 'fuelLevel',
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <LocalGasStation sx={{ color: '#6B7280', mr: 1, fontSize: 16 }} />
-                        <Box sx={{ flex: 1, mr: 1 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={vehicle.fuelLevel}
-                            sx={{
-                              height: 6,
-                              borderRadius: 3,
-                              bgcolor: '#E5E7EB',
-                              '& .MuiLinearProgress-bar': {
-                                bgcolor: vehicle.fuelLevel < 25 ? '#EF4444' : vehicle.fuelLevel < 50 ? '#F59E0B' : '#10B981'
-                              }
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="caption" sx={{ color: '#6B7280', minWidth: '30px' }}>
-                          {vehicle.fuelLevel}%
-                        </Typography>
-                      </Box>
-                    )}
-                    <TableCell>
-                      {vehicle.alerts && vehicle.alerts.length > 0 ? (
-                        <Badge badgeContent={vehicle.alerts.length} color="error">
-                          <Warning sx={{ color: getAlertSeverityColor(vehicle.alerts[0].severity), fontSize: 20 }} />
-                        </Badge>
-                      ) : (
-                        <CheckCircle sx={{ color: '#10B981', fontSize: 20 }} />
-                      )}
-                    </TableCell>
                     <TableCell>
                       <IconButton
                         size="small"
