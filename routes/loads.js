@@ -46,24 +46,26 @@ const upload = multer({
 router.get('/', async (req, res) => {
   try {
     const { status, customer, page = 1, limit = 100 } = req.query;
-    
-    // Build query
-    let query = {};
-    
+
+    // Build query - ALWAYS filter by company
+    let query = {
+      company: req.user.company || req.user._id // Use user's company or fallback to user ID
+    };
+
     if (status && status !== 'all') {
       query.status = status;
     }
-    
+
     if (customer) {
       query.customer = { $regex: customer, $options: 'i' };
     }
-    
+
     // Execute query with pagination
     const loads = await Load.find(query)
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
-    
+
     const total = await Load.countDocuments(query);
     
     res.json({
@@ -89,8 +91,12 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const load = await Load.findById(id);
+
+    // Find load by ID AND company for security
+    const load = await Load.findOne({
+      _id: id,
+      company: req.user.company || req.user._id
+    });
     
     if (!load) {
       return res.status(404).json({
@@ -139,17 +145,22 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Check if load number already exists
-    const existingLoad = await Load.findOne({ loadNumber });
+    // Check if load number already exists within the company
+    const companyId = req.user.company || req.user._id;
+    const existingLoad = await Load.findOne({
+      loadNumber,
+      company: companyId
+    });
     if (existingLoad) {
       return res.status(400).json({
         success: false,
-        message: 'Load number already exists'
+        message: 'Load number already exists in your company'
       });
     }
-    
-    // Create new load
+
+    // Create new load with company
     const newLoad = new Load({
+      company: companyId,
       loadNumber,
       customer,
       origin,
@@ -208,9 +219,12 @@ router.put('/:id', async (req, res) => {
       commodity
     } = req.body;
     
-    // Find and update load
-    const updatedLoad = await Load.findByIdAndUpdate(
-      id,
+    // Find and update load - only if it belongs to user's company
+    const updatedLoad = await Load.findOneAndUpdate(
+      {
+        _id: id,
+        company: req.user.company || req.user._id
+      },
       {
         loadNumber,
         customer,
@@ -267,7 +281,11 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const deletedLoad = await Load.findByIdAndDelete(id);
+    // Delete load - only if it belongs to user's company
+    const deletedLoad = await Load.findOneAndDelete({
+      _id: id,
+      company: req.user.company || req.user._id
+    });
     
     if (!deletedLoad) {
       return res.status(404).json({

@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
 const loadSchema = new mongoose.Schema({
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true,
+    index: true
+  },
   loadNumber: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   customer: {
@@ -148,10 +153,11 @@ const loadSchema = new mongoose.Schema({
 });
 
 // Create indexes for better query performance
-loadSchema.index({ loadNumber: 1 });
-loadSchema.index({ status: 1 });
-loadSchema.index({ customer: 1 });
-loadSchema.index({ pickupDate: 1 });
-loadSchema.index({ deliveryDate: 1 });
+loadSchema.index({ company: 1 });
+loadSchema.index({ company: 1, loadNumber: 1 }, { unique: true }); // Unique loadNumber per company
+loadSchema.index({ company: 1, status: 1 });
+loadSchema.index({ company: 1, customer: 1 });
+loadSchema.index({ company: 1, pickupDate: 1 });
+loadSchema.index({ company: 1, deliveryDate: 1 });
 
 module.exports = mongoose.model('Load', loadSchema);

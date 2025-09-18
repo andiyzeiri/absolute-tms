@@ -4,15 +4,19 @@ const User = require('../models/User');
 const DriverFinancials = require('../models/DriverFinancials');
 const { authenticateToken } = require('../middleware/demoAuth');
 
-// Get all drivers with financial data (temporarily remove auth for testing)
-router.get('/', async (req, res) => {
+// Get all drivers with financial data
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { type } = req.query; // 'owner_operator' or 'company_driver'
     const currentYear = new Date().getFullYear();
-    
-    // Build query
-    let query = { role: 'driver', isActive: true };
-    
+
+    // Build query - ALWAYS filter by company
+    let query = {
+      role: 'driver',
+      isActive: true,
+      company: req.user.company || req.user._id
+    };
+
     // Get drivers
     const drivers = await User.find(query).select('firstName lastName email');
     
@@ -174,13 +178,24 @@ router.put('/:driverId/financials', async (req, res) => {
 });
 
 // Get dashboard stats
-router.get('/dashboard-stats', async (req, res) => {
+router.get('/dashboard-stats', authenticateToken, async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
-    
-    // Get all financial records for current year
-    const financialRecords = await DriverFinancials.find({ year: currentYear })
-      .populate('driver', 'firstName lastName');
+
+    // First get drivers from user's company
+    const companyDrivers = await User.find({
+      role: 'driver',
+      isActive: true,
+      company: req.user.company || req.user._id
+    }).select('_id');
+
+    const driverIds = companyDrivers.map(driver => driver._id);
+
+    // Get financial records only for company drivers
+    const financialRecords = await DriverFinancials.find({
+      year: currentYear,
+      driver: { $in: driverIds }
+    }).populate('driver', 'firstName lastName');
     
     // Separate by driver type
     const ownerOperators = financialRecords.filter(record => 

@@ -2,8 +2,12 @@ const express = require('express');
 const router = express.Router();
 const GmailService = require('../services/gmailService');
 const Load = require('../models/Load');
+const { authenticateToken } = require('../middleware/auth');
 
 const gmailService = new GmailService();
+
+// All routes require authentication
+router.use(authenticateToken);
 
 /**
  * Check Gmail service configuration and environment variables
@@ -375,8 +379,11 @@ router.post('/create-load', checkGmailService, async (req, res) => {
       });
     }
 
-    // Create new load in database
-    const newLoad = new Load(finalLoadData);
+    // Create new load in database with company
+    const newLoad = new Load({
+      company: req.user.company || req.user._id,
+      ...finalLoadData
+    });
     await newLoad.save();
 
     res.json({
@@ -468,8 +475,12 @@ router.post('/auto-process', checkGmailService, async (req, res) => {
           continue;
         }
 
-        // Check if load already exists with this email ID
-        const existingLoad = await Load.findOne({ emailId: fullEmail.id });
+        // Check if load already exists with this email ID for this company
+        const companyId = req.user.company || req.user._id;
+        const existingLoad = await Load.findOne({
+          emailId: fullEmail.id,
+          company: companyId
+        });
         if (existingLoad) {
           results.skipped++;
           results.skippedEmails.push({
@@ -524,8 +535,11 @@ router.post('/auto-process', checkGmailService, async (req, res) => {
         };
 
         if (!dryRun) {
-          // Create new load in database
-          const newLoad = new Load(finalLoadData);
+          // Create new load in database with company
+          const newLoad = new Load({
+            company: companyId,
+            ...finalLoadData
+          });
           await newLoad.save();
 
           results.created++;

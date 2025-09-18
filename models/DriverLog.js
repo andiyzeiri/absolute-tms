@@ -59,6 +59,14 @@ const violationSchema = new mongoose.Schema({
 }, { _id: true });
 
 const driverLogSchema = new mongoose.Schema({
+  // Company association for multi-tenancy
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true,
+    index: true
+  },
+
   // Driver identification
   driverId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -178,18 +186,19 @@ const driverLogSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   indexes: [
-    { driverId: 1, logDate: 1 }, // Composite unique index
-    { logDate: 1 },
-    { driverId: 1 },
-    { vehicleId: 1 },
-    { status: 1 },
-    { hasViolations: 1 },
-    { syncStatus: 1 }
+    { company: 1, driverId: 1, logDate: 1 }, // Company-scoped composite unique index
+    { company: 1, logDate: 1 },
+    { company: 1, driverId: 1 },
+    { company: 1, vehicleId: 1 },
+    { company: 1, status: 1 },
+    { company: 1, hasViolations: 1 },
+    { company: 1, syncStatus: 1 },
+    { company: 1 }
   ]
 });
 
-// Compound unique index to prevent duplicate logs
-driverLogSchema.index({ driverId: 1, logDate: 1 }, { unique: true });
+// Compound unique index to prevent duplicate logs per company
+driverLogSchema.index({ company: 1, driverId: 1, logDate: 1 }, { unique: true });
 
 // Virtual for formatted log date
 driverLogSchema.virtual('formattedLogDate').get(function() {

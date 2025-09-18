@@ -6,6 +6,11 @@ const fs = require('fs').promises;
 const FuelTransaction = require('../models/FuelTransaction');
 const FuelDataImporter = require('../services/fuelDataImporter');
 const { body, query, validationResult } = require('express-validator');
+const { authenticateToken } = require('../middleware/auth');
+const mongoose = require('mongoose');
+
+// All routes require authentication
+router.use(authenticateToken);
 
 // Configure multer for file uploads
 const upload = multer({
@@ -57,8 +62,10 @@ router.get('/transactions', [
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
     
-    // Build filter object
-    const filter = {};
+    // Build filter object with company isolation
+    const filter = {
+      company: req.user.company || req.user._id
+    };
     
     if (req.query.startDate || req.query.endDate) {
       filter.transactionDate = {};
@@ -124,7 +131,10 @@ router.get('/transactions', [
  */
 router.get('/transactions/:id', async (req, res) => {
   try {
-    const transaction = await FuelTransaction.findById(req.params.id);
+    const transaction = await FuelTransaction.findOne({
+      _id: req.params.id,
+      company: req.user.company || req.user._id
+    });
     
     if (!transaction) {
       return res.status(404).json({
@@ -353,8 +363,10 @@ router.get('/stats', [
       });
     }
 
-    // Build filter
-    const filter = {};
+    // Build filter with company isolation
+    const filter = {
+      company: req.user.company || req.user._id
+    };
     if (req.query.startDate || req.query.endDate) {
       filter.transactionDate = {};
       if (req.query.startDate) filter.transactionDate.$gte = new Date(req.query.startDate);
@@ -503,8 +515,11 @@ router.put('/transactions/:id/status', [
     }
 
     const { status, notes } = req.body;
-    
-    const transaction = await FuelTransaction.findById(req.params.id);
+
+    const transaction = await FuelTransaction.findOne({
+      _id: req.params.id,
+      company: req.user.company || req.user._id
+    });
     if (!transaction) {
       return res.status(404).json({
         success: false,
@@ -543,8 +558,9 @@ router.put('/transactions/:id/status', [
  */
 router.get('/validation-report', async (req, res) => {
   try {
-    // Find transactions with validation flags
+    // Find transactions with validation flags for this company
     const flaggedTransactions = await FuelTransaction.find({
+      company: req.user.company || req.user._id,
       'validationFlags.0': { $exists: true }
     })
     .sort({ processedDate: -1 })
@@ -602,8 +618,13 @@ router.get('/import-status', async (req, res) => {
     const wexSftpStatus = fuelImporter.wexSftp.getStatus();
     const importStats = fuelImporter.getStats();
     
-    // Get recent import batches
+    // Get recent import batches for this company
     const recentBatches = await FuelTransaction.aggregate([
+      {
+        $match: {
+          company: mongoose.Types.ObjectId(req.user.company || req.user._id)
+        }
+      },
       {
         $group: {
           _id: '$importBatch',

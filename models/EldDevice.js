@@ -1,17 +1,23 @@
 const mongoose = require('mongoose');
 
 const eldDeviceSchema = new mongoose.Schema({
+  // Company association for multi-tenancy
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true,
+    index: true
+  },
+
   // Device identification
   deviceId: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   serialNumber: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   
@@ -171,13 +177,14 @@ const eldDeviceSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   indexes: [
-    { deviceId: 1 },
-    { serialNumber: 1 },
-    { vehicleId: 1 },
-    { status: 1 },
-    { provider: 1 },
-    { certificationExpiry: 1 },
-    { nextMaintenanceDate: 1 }
+    { company: 1, deviceId: 1 },
+    { company: 1, serialNumber: 1 },
+    { company: 1, vehicleId: 1 },
+    { company: 1, status: 1 },
+    { company: 1, provider: 1 },
+    { company: 1, certificationExpiry: 1 },
+    { company: 1, nextMaintenanceDate: 1 },
+    { company: 1 }
   ]
 });
 
@@ -383,6 +390,10 @@ eldDeviceSchema.pre('save', function(next) {
   
   next();
 });
+
+// Unique compound indexes for company isolation
+eldDeviceSchema.index({ company: 1, deviceId: 1 }, { unique: true });
+eldDeviceSchema.index({ company: 1, serialNumber: 1 }, { unique: true });
 
 // Export model
 const EldDevice = mongoose.model('EldDevice', eldDeviceSchema);

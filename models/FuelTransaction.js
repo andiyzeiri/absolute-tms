@@ -1,11 +1,18 @@
 const mongoose = require('mongoose');
 
 const fuelTransactionSchema = new mongoose.Schema({
+  // Company association for multi-tenancy
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true,
+    index: true
+  },
+
   // WEX Transaction Identifier
   transactionId: {
     type: String,
     required: true,
-    unique: true,
     index: true
   },
   
@@ -195,14 +202,16 @@ const fuelTransactionSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for performance
-fuelTransactionSchema.index({ transactionDate: -1 });
-fuelTransactionSchema.index({ cardNumber: 1, transactionDate: -1 });
-fuelTransactionSchema.index({ vehicleId: 1, transactionDate: -1 });
-fuelTransactionSchema.index({ driverName: 1, transactionDate: -1 });
-fuelTransactionSchema.index({ merchantName: 1 });
-fuelTransactionSchema.index({ status: 1, processedDate: -1 });
-fuelTransactionSchema.index({ importBatch: 1 });
+// Indexes for performance with company isolation
+fuelTransactionSchema.index({ company: 1, transactionId: 1 }, { unique: true }); // Unique transactionId per company
+fuelTransactionSchema.index({ company: 1, transactionDate: -1 });
+fuelTransactionSchema.index({ company: 1, cardNumber: 1, transactionDate: -1 });
+fuelTransactionSchema.index({ company: 1, vehicleId: 1, transactionDate: -1 });
+fuelTransactionSchema.index({ company: 1, driverName: 1, transactionDate: -1 });
+fuelTransactionSchema.index({ company: 1, merchantName: 1 });
+fuelTransactionSchema.index({ company: 1, status: 1, processedDate: -1 });
+fuelTransactionSchema.index({ company: 1, importBatch: 1 });
+fuelTransactionSchema.index({ company: 1 });
 
 // Virtual for fuel cost per mile (if odometer data available)
 fuelTransactionSchema.virtual('costPerMile').get(function() {
