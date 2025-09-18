@@ -48,14 +48,6 @@ const Login = ({ onSwitchToRegister, onBackToLanding }) => {
     }
   };
 
-  const demoLogin = (role) => {
-    const demoCredentials = {
-      admin: { email: 'admin@overdrivetms.com', password: 'demo123' },
-      driver: { email: 'john.driver@overdrivetms.com', password: 'demo123' }
-    };
-    
-    setCredentials(demoCredentials[role]);
-  };
 
   return (
     <Container maxWidth="sm">
@@ -160,49 +152,6 @@ const Login = ({ onSwitchToRegister, onBackToLanding }) => {
               </Link>
             </Box>
 
-            <Divider sx={{ my: 3 }} />
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" color="#86868B" textAlign="center" gutterBottom>
-                Try the demo:
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => demoLogin('admin')}
-                  sx={{ 
-                    flex: 1,
-                    textTransform: 'none',
-                    borderColor: '#D2D2D7',
-                    color: '#1D1D1F',
-                    '&:hover': { 
-                      borderColor: '#007AFF',
-                      bgcolor: 'rgba(0, 122, 255, 0.04)'
-                    }
-                  }}
-                >
-                  Admin Demo
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => demoLogin('driver')}
-                  sx={{ 
-                    flex: 1,
-                    textTransform: 'none',
-                    borderColor: '#D2D2D7',
-                    color: '#1D1D1F',
-                    '&:hover': { 
-                      borderColor: '#007AFF',
-                      bgcolor: 'rgba(0, 122, 255, 0.04)'
-                    }
-                  }}
-                >
-                  Driver Demo
-                </Button>
-              </Box>
-            </Box>
 
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="#86868B">

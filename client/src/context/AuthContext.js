@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { clearAllTMSLocalStorage } from '../utils/clearSharedData';
 
 const AuthContext = createContext();
 
@@ -110,10 +111,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('tms_refresh_token', refreshToken);
       localStorage.setItem('token', accessToken); // For PDF uploads
       
+      // Clear any cached data from previous users to prevent data leakage
+      clearAllTMSLocalStorage();
+
       // Update state
       setUser(userData);
       setIsAuthenticated(true);
-      
+
       toast.success(`Welcome back, ${userData.firstName}!`);
       return { success: true };
       
@@ -154,10 +158,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('tms_refresh_token', refreshToken);
       localStorage.setItem('token', accessToken); // For PDF uploads
       
+      // Clear any cached data from previous users to prevent data leakage
+      clearAllTMSLocalStorage();
+
       // Update state
       setUser(newUser);
       setIsAuthenticated(true);
-      
+
       toast.success(`Welcome to TMS Pro, ${newUser.firstName}!`);
       return { success: true };
       
@@ -194,12 +201,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local storage and state
+      // Only clear auth tokens on logout, keep other data
       localStorage.removeItem('tms_access_token');
       localStorage.removeItem('tms_refresh_token');
+      localStorage.removeItem('token');
+
       setUser(null);
       setIsAuthenticated(false);
-      
+
       toast.success('Logged out successfully');
     }
   };

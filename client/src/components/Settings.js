@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   Box,
   Card,
@@ -64,6 +65,7 @@ const SettingsSection = ({ title, icon, children }) => (
 );
 
 const Settings = () => {
+  const { user } = useAuth();
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [showPassword, setShowPassword] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -71,23 +73,46 @@ const Settings = () => {
 
   // User Profile Settings
   const [profileData, setProfileData] = useState({
-    firstName: 'Demo',
-    lastName: 'User',
-    email: 'demo@absolutetms.com',
-    phone: '+1-416-555-0123',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
     title: 'Fleet Manager',
     avatar: null
   });
 
   // Company Settings
   const [companyData, setCompanyData] = useState({
-    name: 'Absolute TMS Solutions',
-    address: '123 Transport Ave, Toronto, ON M5V 1A1',
-    phone: '+1-416-555-0100',
-    email: 'info@absolutetms.com',
-    website: 'www.absolutetms.com',
-    taxNumber: '123456789RT0001'
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    taxNumber: ''
   });
+
+  // Load user data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || user.phoneNumber || '',
+        title: user.title || 'Fleet Manager',
+        avatar: user.avatar || null
+      });
+
+      setCompanyData({
+        name: user.companyName || '',
+        address: user.address?.street || '',
+        phone: user.phone || user.phoneNumber || '',
+        email: user.email || '',
+        website: user.website || '',
+        taxNumber: user.taxNumber || ''
+      });
+    }
+  }, [user]);
 
   // System Preferences
   const [preferences, setPreferences] = useState({

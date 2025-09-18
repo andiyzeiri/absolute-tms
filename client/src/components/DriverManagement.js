@@ -60,11 +60,7 @@ const DriverManagement = () => {
       .join(' ');
   };
 
-  const [drivers, setDrivers] = useState(() => {
-    // Try to load drivers from localStorage first
-    const savedDrivers = localStorage.getItem('tms_drivers');
-    return savedDrivers ? JSON.parse(savedDrivers) : [];
-  });
+  const [drivers, setDrivers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -267,14 +263,25 @@ const DriverManagement = () => {
   // Fetch drivers from API
   const fetchDrivers = async () => {
     try {
+      console.log('🔍 Fetching drivers from API...');
       const response = await axios.get('/api/drivers');
+      console.log('📄 API Response:', response.data);
+
       const driversData = response.data.data || [];
-      
+      console.log(`📊 Found ${driversData.length} drivers in API response`);
+
       // Transform API data to match expected format
-      const transformedDrivers = driversData.map(driver => ({
+      const transformedDrivers = driversData.map(driver => {
+        const nameParts = (driver.name || '').trim().split(' ');
+        const firstName = nameParts[0] || 'Driver';
+        const lastName = nameParts.slice(1).join(' ') || `#${driver._id.slice(-4)}`;
+
+        console.log(`🔄 Transforming driver: ${driver.name || 'No name'} (${driver._id})`);
+
+        return {
         id: driver._id,
-        firstName: driver.name.split(' ')[0],
-        lastName: driver.name.split(' ').slice(1).join(' '),
+        firstName: firstName,
+        lastName: lastName,
         email: driver.email,
         phone: '5555550000', // Default since not in API
         licenseNumber: 'DL-' + driver._id.slice(-6),
@@ -310,26 +317,44 @@ const DriverManagement = () => {
         yearlyGross: driver.yearlyGross,
         profit: driver.profit,
         profitMargin: driver.profitMargin
-      }));
-      
-      setDrivers(transformedDrivers);
-    } catch (error) {
-      console.error('Error fetching drivers:', error);
-      // Fallback to demo data if API fails
-      setDrivers(demoDrivers); // Show all demo drivers
-      setSnackbar({ 
-        open: true, 
-        message: 'Using demo data - API not available', 
-        severity: 'warning' 
+        };
       });
+
+      console.log(`✅ Setting ${transformedDrivers.length} transformed drivers to state`);
+      setDrivers(transformedDrivers);
+
+      if (transformedDrivers.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'No drivers found - try adding one',
+          severity: 'info'
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching drivers:', error);
+      // Only show demo data if it's a network error
+      if (error.code === 'ERR_NETWORK') {
+        setDrivers(demoDrivers);
+        setSnackbar({
+          open: true,
+          message: 'Using demo data - API not available',
+          severity: 'warning'
+        });
+      } else {
+        // For other errors, show empty state
+        setDrivers([]);
+        setSnackbar({
+          open: true,
+          message: error.response?.data?.message || 'Failed to load drivers',
+          severity: 'error'
+        });
+      }
     }
   };
 
   useEffect(() => {
-    // Only fetch from API if no saved drivers exist
-    if (drivers.length === 0) {
-      fetchDrivers();
-    }
+    // Always fetch fresh data from API on mount
+    fetchDrivers();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save drivers to localStorage whenever drivers state changes
@@ -396,7 +421,8 @@ const DriverManagement = () => {
         age: '',
         yearsExperience: '',
         fein: '',
-        businessName: ''
+        businessName: '',
+        driverType: 'company_driver'
       });
     }
     setOpenDialog(true);
@@ -410,6 +436,8 @@ const DriverManagement = () => {
 
   const handleSaveDriver = async () => {
     try {
+      // No validation needed - fields are optional
+
       if (dialogMode === 'add') {
         // Generate a unique ID for the new driver
         const newId = 'D-' + String(drivers.length + 1).padStart(3, '0');
@@ -455,9 +483,22 @@ const DriverManagement = () => {
           profitMargin: 0
         };
         
-        // Add to local state (will automatically save to localStorage via useEffect)
-        setDrivers([...drivers, newDriver]);
+        // Save to database via API
+        await axios.post('/api/drivers', {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          driverType: formData.driverType,
+          yearlyGross: 0,
+          yearlyProfit: 0
+        });
+
+        // Refresh drivers from database
+        await fetchDrivers();
         setSnackbar({ open: true, message: 'Driver added successfully!', severity: 'success' });
+
+        // Close dialog and clear form on success
+        handleCloseDialog();
         
       } else if (dialogMode === 'edit') {
         // Update local driver data with form changes
@@ -506,13 +547,13 @@ const DriverManagement = () => {
       }
     } catch (error) {
       console.error('Error saving driver:', error);
-      setSnackbar({ 
-        open: true, 
-        message: error.response?.data?.message || 'Failed to save driver', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to save driver',
+        severity: 'error'
       });
+      // Don't close dialog on error so user can fix the issue
     }
-    handleCloseDialog();
   };
 
   const handleDeleteDriver = async (driverId) => {

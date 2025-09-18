@@ -2,10 +2,17 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const DriverFinancials = require('../models/DriverFinancials');
-const { authenticateToken } = require('../middleware/demoAuth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Get all drivers with financial data
 router.get('/', authenticateToken, async (req, res) => {
+  // Disable caching for this endpoint to ensure fresh data
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
   try {
     const { type } = req.query; // 'owner_operator' or 'company_driver'
     const currentYear = new Date().getFullYear();
@@ -74,11 +81,14 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Create a new driver
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { firstName, lastName, email, driverType, yearlyGross, yearlyProfit } = req.body;
     const currentYear = new Date().getFullYear();
-    
+
+    console.log('📝 Creating driver with request body:', req.body);
+    console.log('🏢 User company:', req.user.company || req.user._id);
+
     // Create user
     const userData = {
       firstName,
@@ -86,7 +96,8 @@ router.post('/', async (req, res) => {
       email,
       password: 'defaultPassword123', // Default password
       role: 'driver',
-      isActive: true
+      isActive: true,
+      company: req.user.company || req.user._id // Ensure driver belongs to current user's company
     };
     
     const newUser = new User(userData);
@@ -201,7 +212,7 @@ router.get('/dashboard-stats', authenticateToken, async (req, res) => {
     const ownerOperators = financialRecords.filter(record => 
       record.driverType === 'owner_operator'
     );
-    const companyDrivers = financialRecords.filter(record => 
+    const companyDriverFinancials = financialRecords.filter(record =>
       record.driverType === 'company_driver'
     );
     
@@ -220,7 +231,7 @@ router.get('/dashboard-stats', authenticateToken, async (req, res) => {
       monthlyRevenue,
       yearToDateRevenue: totalRevenue,
       ownerOperators: ownerOperators.length,
-      companyDrivers: companyDrivers.length,
+      companyDrivers: companyDriverFinancials.length,
       activeDrivers: financialRecords.length
     });
   } catch (error) {
