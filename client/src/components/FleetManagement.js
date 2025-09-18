@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Card,
@@ -232,7 +233,7 @@ const FleetManagement = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('tms_access_token');
 
       // If no token, handle based on environment
       if (!token) {
@@ -254,54 +255,46 @@ const FleetManagement = () => {
         return;
       }
 
-      const response = await fetch('/api/vehicles', {
+      const response = await axios.get('/api/vehicles', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Vehicles API response:', data);
-        const normalizedVehicles = (data.data || []).map(normalizeVehicle);
-        setVehicles(normalizedVehicles);
+      const data = response.data;
+      console.log('Vehicles API response:', data);
+      const normalizedVehicles = (data.data || []).map(normalizeVehicle);
+      setVehicles(normalizedVehicles);
 
-        // Show success message when using real data
-        if (normalizedVehicles.length === 0) {
-          setSnackbar({
-            open: true,
-            message: 'Connected to database - No vehicles found. Add your first vehicle!',
-            severity: 'info'
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: `Loaded ${normalizedVehicles.length} vehicles from database`,
-            severity: 'success'
-          });
-        }
-      } else {
-        console.error('Failed to fetch vehicles:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url
+      // Show success message when using real data
+      if (normalizedVehicles.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'Connected to database - No vehicles found. Add your first vehicle!',
+          severity: 'info'
         });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Loaded ${normalizedVehicles.length} vehicles from database`,
+          severity: 'success'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
 
-        // Try to get error details
-        try {
-          const errorData = await response.json();
-          console.error('API Error details:', errorData);
-        } catch (e) {
-          console.error('Could not parse error response');
-        }
+      // Handle axios errors
+      if (error.response) {
+        const status = error.response.status;
+        console.error('API Error details:', error.response.data);
 
-        // Only fall back to demo data in development or if explicitly no real database
+        // Only fall back to demo data in development
         if (process.env.NODE_ENV === 'development') {
           setVehicles(demoVehicles);
           setSnackbar({
             open: true,
-            message: `API Error (${response.status}): Using demo data in development`,
+            message: `API Error (${status}): Using demo data in development`,
             severity: 'warning'
           });
         } else {
@@ -309,30 +302,27 @@ const FleetManagement = () => {
           setVehicles([]);
           setSnackbar({
             open: true,
-            message: response.status === 401 ? 'Session expired - please login again' : `Server error (${response.status}) - please contact support`,
+            message: status === 401 ? 'Session expired - please login again' : `Server error (${status}) - please contact support`,
             severity: 'error'
           });
         }
-      }
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
-
-      // Only fall back to demo data in development
-      if (process.env.NODE_ENV === 'development') {
-        setVehicles(demoVehicles);
-        setSnackbar({
-          open: true,
-          message: 'Network error: Using demo data in development',
-          severity: 'warning'
-        });
       } else {
-        // In production, show empty state instead of demo data
-        setVehicles([]);
-        setSnackbar({
-          open: true,
-          message: 'Network error - please check your connection and refresh',
-          severity: 'error'
-        });
+        // Network error
+        if (process.env.NODE_ENV === 'development') {
+          setVehicles(demoVehicles);
+          setSnackbar({
+            open: true,
+            message: 'Network error: Using demo data in development',
+            severity: 'warning'
+          });
+        } else {
+          setVehicles([]);
+          setSnackbar({
+            open: true,
+            message: 'Network error - please check your connection and refresh',
+            severity: 'error'
+          });
+        }
       }
     } finally {
       setLoading(false);
@@ -419,7 +409,7 @@ const FleetManagement = () => {
   const handleSaveVehicle = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('tms_access_token');
 
       if (dialogMode === 'add') {
         // Generate a unique ID for the new vehicle
@@ -478,21 +468,17 @@ const FleetManagement = () => {
               }
             };
 
-            const response = await fetch('/api/vehicles', {
-              method: 'POST',
+            const response = await axios.post('/api/vehicles', vehicleData, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(vehicleData)
+              }
             });
 
-            if (response.ok) {
-              setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
-              fetchVehicles(); // Refresh the list
-              handleCloseDialog();
-              return;
-            }
+            setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
+            fetchVehicles(); // Refresh the list
+            handleCloseDialog();
+            return;
           } catch (error) {
             console.log('API failed, saving locally:', error);
           }
@@ -567,21 +553,17 @@ const FleetManagement = () => {
               }
             };
 
-            const response = await fetch(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, {
-              method: 'PUT',
+            const response = await axios.put(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, vehicleData, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(vehicleData)
+              }
             });
 
-            if (response.ok) {
-              setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
-              fetchVehicles(); // Refresh the list
-              handleCloseDialog();
-              return;
-            }
+            setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
+            fetchVehicles(); // Refresh the list
+            handleCloseDialog();
+            return;
           } catch (error) {
             console.log('API failed, saving locally:', error);
           }
@@ -629,25 +611,22 @@ const FleetManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('tms_access_token');
 
       if (token) {
         // Try API first if authenticated
         try {
-          const response = await fetch(`/api/vehicles/${vehicleId}`, {
-            method: 'DELETE',
+          const response = await axios.delete(`/api/vehicles/${vehicleId}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
 
-          if (response.ok) {
-            setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
-            fetchVehicles(); // Refresh the list
-            handleCloseMenu();
-            return;
-          }
+          setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
+          fetchVehicles(); // Refresh the list
+          handleCloseMenu();
+          return;
         } catch (error) {
           console.log('API failed, deleting locally:', error);
         }
