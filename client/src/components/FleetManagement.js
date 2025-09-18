@@ -234,10 +234,23 @@ const FleetManagement = () => {
     try {
       const token = localStorage.getItem('accessToken');
 
-      // If no token, use demo data immediately
+      // If no token, handle based on environment
       if (!token) {
-        setVehicles(demoVehicles);
-        setSnackbar({ open: true, message: 'Using demo data - login to save vehicles permanently', severity: 'info' });
+        if (process.env.NODE_ENV === 'development') {
+          setVehicles(demoVehicles);
+          setSnackbar({
+            open: true,
+            message: 'Not logged in - using demo data in development',
+            severity: 'info'
+          });
+        } else {
+          setVehicles([]);
+          setSnackbar({
+            open: true,
+            message: 'Please login to access your fleet management',
+            severity: 'warning'
+          });
+        }
         return;
       }
 
@@ -250,23 +263,77 @@ const FleetManagement = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Vehicles API response:', data);
         const normalizedVehicles = (data.data || []).map(normalizeVehicle);
         setVehicles(normalizedVehicles);
+
+        // Show success message when using real data
+        if (normalizedVehicles.length === 0) {
+          setSnackbar({
+            open: true,
+            message: 'Connected to database - No vehicles found. Add your first vehicle!',
+            severity: 'info'
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: `Loaded ${normalizedVehicles.length} vehicles from database`,
+            severity: 'success'
+          });
+        }
       } else {
-        console.error('Failed to fetch vehicles:', response.statusText);
-        // Fallback to demo data if API fails
-        setVehicles(demoVehicles);
-        setSnackbar({
-          open: true,
-          message: response.status === 401 ? 'Session expired - using demo data' : 'Using demo data - API unavailable',
-          severity: 'warning'
+        console.error('Failed to fetch vehicles:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
         });
+
+        // Try to get error details
+        try {
+          const errorData = await response.json();
+          console.error('API Error details:', errorData);
+        } catch (e) {
+          console.error('Could not parse error response');
+        }
+
+        // Only fall back to demo data in development or if explicitly no real database
+        if (process.env.NODE_ENV === 'development') {
+          setVehicles(demoVehicles);
+          setSnackbar({
+            open: true,
+            message: `API Error (${response.status}): Using demo data in development`,
+            severity: 'warning'
+          });
+        } else {
+          // In production, show empty state instead of demo data
+          setVehicles([]);
+          setSnackbar({
+            open: true,
+            message: response.status === 401 ? 'Session expired - please login again' : `Server error (${response.status}) - please contact support`,
+            severity: 'error'
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
-      // Fallback to demo data if API fails
-      setVehicles(demoVehicles);
-      setSnackbar({ open: true, message: 'Using demo data - API unavailable', severity: 'warning' });
+
+      // Only fall back to demo data in development
+      if (process.env.NODE_ENV === 'development') {
+        setVehicles(demoVehicles);
+        setSnackbar({
+          open: true,
+          message: 'Network error: Using demo data in development',
+          severity: 'warning'
+        });
+      } else {
+        // In production, show empty state instead of demo data
+        setVehicles([]);
+        setSnackbar({
+          open: true,
+          message: 'Network error - please check your connection and refresh',
+          severity: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -431,13 +498,24 @@ const FleetManagement = () => {
           }
         }
 
-        // Add to local state (will automatically save to localStorage via useEffect)
-        setVehicles([...vehicles, newVehicle]);
-        setSnackbar({
-          open: true,
-          message: token ? 'Vehicle added to demo data (API unavailable)' : 'Vehicle added to demo data!',
-          severity: 'success'
-        });
+        // Handle fallback based on environment
+        if (process.env.NODE_ENV === 'development') {
+          // In development, add to local state as demo data
+          setVehicles([...vehicles, newVehicle]);
+          setSnackbar({
+            open: true,
+            message: token ? 'Vehicle added to demo data (API unavailable)' : 'Vehicle added to demo data!',
+            severity: 'success'
+          });
+        } else {
+          // In production, show error instead of using demo data
+          setSnackbar({
+            open: true,
+            message: token ? 'Failed to save vehicle - server error' : 'Please login to save vehicles',
+            severity: 'error'
+          });
+          return; // Don't close dialog, let user try again
+        }
 
       } else if (dialogMode === 'edit') {
         const updatedVehicle = {
@@ -509,16 +587,27 @@ const FleetManagement = () => {
           }
         }
 
-        // Update local state
-        const updatedVehicles = vehicles.map(vehicle =>
-          vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
-        );
-        setVehicles(updatedVehicles);
-        setSnackbar({
-          open: true,
-          message: token ? 'Vehicle updated in demo data (API unavailable)' : 'Vehicle updated in demo data!',
-          severity: 'success'
-        });
+        // Handle fallback based on environment
+        if (process.env.NODE_ENV === 'development') {
+          // In development, update local state as demo data
+          const updatedVehicles = vehicles.map(vehicle =>
+            vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
+          );
+          setVehicles(updatedVehicles);
+          setSnackbar({
+            open: true,
+            message: token ? 'Vehicle updated in demo data (API unavailable)' : 'Vehicle updated in demo data!',
+            severity: 'success'
+          });
+        } else {
+          // In production, show error instead of using demo data
+          setSnackbar({
+            open: true,
+            message: token ? 'Failed to update vehicle - server error' : 'Please login to update vehicles',
+            severity: 'error'
+          });
+          return; // Don't close dialog, let user try again
+        }
       }
 
       handleCloseDialog();
@@ -564,14 +653,25 @@ const FleetManagement = () => {
         }
       }
 
-      // Delete from local state
-      const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
-      setVehicles(updatedVehicles);
-      setSnackbar({
-        open: true,
-        message: token ? 'Vehicle deleted from demo data (API unavailable)' : 'Vehicle deleted from demo data!',
-        severity: 'success'
-      });
+      // Handle fallback based on environment
+      if (process.env.NODE_ENV === 'development') {
+        // In development, delete from local state as demo data
+        const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
+        setVehicles(updatedVehicles);
+        setSnackbar({
+          open: true,
+          message: token ? 'Vehicle deleted from demo data (API unavailable)' : 'Vehicle deleted from demo data!',
+          severity: 'success'
+        });
+      } else {
+        // In production, show error instead of using demo data
+        setSnackbar({
+          open: true,
+          message: token ? 'Failed to delete vehicle - server error' : 'Please login to delete vehicles',
+          severity: 'error'
+        });
+        return; // Don't proceed with deletion
+      }
 
     } catch (error) {
       console.error('Error deleting vehicle:', error);
