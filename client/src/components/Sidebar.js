@@ -98,18 +98,6 @@ const Sidebar = ({ currentPage, onPageChange, user }) => {
       {/* Header Section */}
       <Box sx={{ p: 3, borderBottom: '1px solid #E5E7EB' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ 
-            width: 40, 
-            height: 40, 
-            bgcolor: '#059669', 
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mr: 2
-          }}>
-            <LocalShipping sx={{ color: 'white', fontSize: 24 }} />
-          </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', lineHeight: 1 }}>
               {companyName}
