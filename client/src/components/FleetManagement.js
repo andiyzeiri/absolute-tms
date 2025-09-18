@@ -29,7 +29,8 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
-  Badge
+  Badge,
+  ClickAwayListener
 } from '@mui/material';
 import {
   Add,
@@ -64,6 +65,10 @@ const FleetManagement = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuVehicleId, setMenuVehicleId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Inline editing states
+  const [editingCell, setEditingCell] = useState({ vehicleId: null, field: null });
+  const [editingValue, setEditingValue] = useState('');
 
   // Demo vehicles data
   const demoVehicles = [
@@ -184,8 +189,9 @@ const FleetManagement = () => {
   });
 
   useEffect(() => {
-    // Load demo data if no vehicles exist
-    if (vehicles.length === 0) {
+    // Only load demo data if localStorage is completely empty AND no vehicles in state
+    const savedVehicles = localStorage.getItem('tms_vehicles');
+    if (!savedVehicles && vehicles.length === 0) {
       setVehicles(demoVehicles);
       setSnackbar({
         open: true,
@@ -201,6 +207,13 @@ const FleetManagement = () => {
       localStorage.setItem('tms_vehicles', JSON.stringify(vehicles));
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('vehiclesUpdated'));
+    } else {
+      // If vehicles array becomes empty, keep localStorage but don't overwrite existing data
+      const savedVehicles = localStorage.getItem('tms_vehicles');
+      if (savedVehicles && JSON.parse(savedVehicles).length > 0) {
+        // Don't clear localStorage if we have saved vehicles
+        return;
+      }
     }
   }, [vehicles]);
 
@@ -405,6 +418,124 @@ const FleetManagement = () => {
     setMenuVehicleId(null);
   };
 
+  // Inline editing handlers
+  const handleCellClick = (vehicleId, field, currentValue, event) => {
+    if (field === 'actions' || field === 'alerts') return;
+    setEditingCell({ vehicleId, field });
+    setEditingValue(currentValue.toString());
+  };
+
+  const handleCellSave = () => {
+    if (!editingCell.vehicleId || !editingCell.field) return;
+
+    const updatedVehicles = vehicles.map(vehicle => {
+      if (vehicle.id === editingCell.vehicleId) {
+        const updatedVehicle = { ...vehicle };
+
+        if (editingCell.field === 'mileage') {
+          updatedVehicle.mileage = parseInt(editingValue) || 0;
+        } else if (editingCell.field === 'fuelLevel') {
+          updatedVehicle.fuelLevel = Math.min(100, Math.max(0, parseInt(editingValue) || 0));
+        } else {
+          updatedVehicle[editingCell.field] = editingValue;
+        }
+
+        return updatedVehicle;
+      }
+      return vehicle;
+    });
+
+    setVehicles(updatedVehicles);
+    setEditingCell({ vehicleId: null, field: null });
+    setEditingValue('');
+
+    setSnackbar({
+      open: true,
+      message: `Updated ${editingCell.field} successfully`,
+      severity: 'success'
+    });
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleCellSave();
+    } else if (event.key === 'Escape') {
+      setEditingCell({ vehicleId: null, field: null });
+      setEditingValue('');
+    }
+  };
+
+  const renderEditableCell = (vehicle, field, displayValue, cellProps = {}) => {
+    const isEditing = editingCell.vehicleId === vehicle.id && editingCell.field === field;
+
+    if (isEditing && field === 'status') {
+      return (
+        <TableCell {...cellProps}>
+          <ClickAwayListener onClickAway={handleCellSave}>
+            <Select
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              autoFocus
+              size="small"
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="in_transit">In Transit</MenuItem>
+              <MenuItem value="maintenance">Maintenance</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </ClickAwayListener>
+        </TableCell>
+      );
+    }
+
+    if (isEditing) {
+      return (
+        <TableCell {...cellProps} sx={{ ...cellProps.sx, p: 1 }}>
+          <ClickAwayListener onClickAway={handleCellSave}>
+            <TextField
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              autoFocus
+              size="small"
+              variant="standard"
+              type={field === 'mileage' || field === 'fuelLevel' ? 'number' : 'text'}
+              inputProps={{
+                min: field === 'fuelLevel' ? 0 : undefined,
+                max: field === 'fuelLevel' ? 100 : undefined
+              }}
+              sx={{ '& .MuiInput-underline:before': { borderBottom: 'none' } }}
+            />
+          </ClickAwayListener>
+        </TableCell>
+      );
+    }
+
+    return (
+      <TableCell
+        {...cellProps}
+        onClick={(e) => handleCellClick(vehicle.id, field,
+          field === 'mileage' ? vehicle.mileage :
+          field === 'fuelLevel' ? vehicle.fuelLevel :
+          field === 'driver' ? vehicle.driver || '' :
+          field === 'location' ? vehicle.location :
+          field === 'status' ? vehicle.status :
+          displayValue, e
+        )}
+        sx={{
+          ...cellProps.sx,
+          cursor: 'pointer',
+          '&:hover': { bgcolor: '#F3F4F6' },
+          transition: 'background-color 0.2s'
+        }}
+      >
+        {displayValue}
+      </TableCell>
+    );
+  };
+
   const vehicleTypes = [
     { label: 'Semi Truck', value: 'semi' },
     { label: 'Delivery Van', value: 'van' },
@@ -585,8 +716,8 @@ const FleetManagement = () => {
                         </Box>
                       </Box>
                     </TableCell>
-                    <TableCell>
-                      {vehicle.driver ? (
+                    {renderEditableCell(vehicle, 'driver',
+                      vehicle.driver ? (
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <Avatar sx={{ width: 24, height: 24, bgcolor: '#4F46E5', fontSize: '0.75rem', mr: 1 }}>
                             {vehicle.driver.split(' ').map(n => n[0]).join('')}
@@ -599,9 +730,9 @@ const FleetManagement = () => {
                         <Typography variant="body2" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
                           Unassigned
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                      )
+                    )}
+                    {renderEditableCell(vehicle, 'status',
                       <Chip
                         label={statusConfig.label}
                         size="small"
@@ -612,24 +743,24 @@ const FleetManagement = () => {
                           fontSize: '0.75rem'
                         }}
                       />
-                    </TableCell>
-                    <TableCell>
+                    )}
+                    {renderEditableCell(vehicle, 'location',
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <LocationOn sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
                         <Typography variant="body2" sx={{ color: '#374151' }}>
                           {vehicle.location}
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell>
+                    )}
+                    {renderEditableCell(vehicle, 'mileage',
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Speed sx={{ color: '#6B7280', mr: 0.5, fontSize: 16 }} />
                         <Typography variant="body2" sx={{ color: '#374151' }}>
                           {vehicle.mileage?.toLocaleString()} mi
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell>
+                    )}
+                    {renderEditableCell(vehicle, 'fuelLevel',
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <LocalGasStation sx={{ color: '#6B7280', mr: 1, fontSize: 16 }} />
                         <Box sx={{ flex: 1, mr: 1 }}>
@@ -650,7 +781,7 @@ const FleetManagement = () => {
                           {vehicle.fuelLevel}%
                         </Typography>
                       </Box>
-                    </TableCell>
+                    )}
                     <TableCell>
                       {vehicle.alerts && vehicle.alerts.length > 0 ? (
                         <Badge badgeContent={vehicle.alerts.length} color="error">
