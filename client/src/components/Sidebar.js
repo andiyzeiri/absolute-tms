@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   Box,
@@ -47,6 +47,36 @@ const menuItems = [
 
 const Sidebar = ({ currentPage, onPageChange, user }) => {
   const { logout } = useAuth();
+  const [companyName, setCompanyName] = useState(() => {
+    // Load company name from localStorage or fallback to user data
+    return localStorage.getItem('tms_company_name') || user?.companyName || user?.company?.name || 'Your Company';
+  });
+
+  useEffect(() => {
+    // Listen for company name updates
+    const handleCompanyNameUpdate = (event) => {
+      setCompanyName(event.detail.companyName);
+    };
+
+    window.addEventListener('companyNameUpdated', handleCompanyNameUpdate);
+
+    // Cleanup listener
+    return () => {
+      window.removeEventListener('companyNameUpdated', handleCompanyNameUpdate);
+    };
+  }, []);
+
+  // Update company name when user changes
+  useEffect(() => {
+    const savedCompanyName = localStorage.getItem('tms_company_name');
+    if (savedCompanyName) {
+      setCompanyName(savedCompanyName);
+    } else if (user?.companyName) {
+      setCompanyName(user.companyName);
+    } else if (user?.company?.name) {
+      setCompanyName(user.company.name);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -82,7 +112,7 @@ const Sidebar = ({ currentPage, onPageChange, user }) => {
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827', lineHeight: 1 }}>
-              {user?.company?.name || 'Your Company'}
+              {companyName}
             </Typography>
             <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
               Transportation Management

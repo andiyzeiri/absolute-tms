@@ -103,8 +103,10 @@ const Settings = () => {
         avatar: user.avatar || null
       });
 
+      // Load company name from localStorage first, then fallback to user data
+      const savedCompanyName = localStorage.getItem('tms_company_name');
       setCompanyData({
-        name: user.companyName || '',
+        name: savedCompanyName || user.companyName || '',
         address: user.address?.street || '',
         phone: user.phone || user.phoneNumber || '',
         email: user.email || '',
@@ -147,6 +149,14 @@ const Settings = () => {
   };
 
   const handleSaveCompany = () => {
+    // Save company name to localStorage so it persists across sessions
+    localStorage.setItem('tms_company_name', companyData.name);
+
+    // Dispatch custom event to notify other components about company name change
+    window.dispatchEvent(new CustomEvent('companyNameUpdated', {
+      detail: { companyName: companyData.name }
+    }));
+
     setSnackbar({ open: true, message: 'Company settings updated successfully!', severity: 'success' });
   };
 
