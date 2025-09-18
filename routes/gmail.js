@@ -6,11 +6,70 @@ const Load = require('../models/Load');
 const gmailService = new GmailService();
 
 /**
+ * Check Gmail service configuration and environment variables
+ * GET /api/gmail/config-check
+ */
+router.get('/config-check', (req, res) => {
+  try {
+    const envCheck = {
+      GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+      GOOGLE_REDIRECT_URI: !!process.env.GOOGLE_REDIRECT_URI,
+      service: {
+        oauth2Client: !!gmailService.oauth2Client,
+        gmail: !!gmailService.gmail
+      }
+    };
+
+    const allEnvVarsPresent = envCheck.GOOGLE_CLIENT_ID && envCheck.GOOGLE_CLIENT_SECRET;
+    const serviceInitialized = envCheck.service.oauth2Client && envCheck.service.gmail;
+
+    res.json({
+      success: true,
+      production: process.env.NODE_ENV === 'production',
+      environment: envCheck,
+      status: {
+        environmentVariables: allEnvVarsPresent ? 'OK' : 'MISSING',
+        serviceInitialized: serviceInitialized ? 'OK' : 'NOT_INITIALIZED',
+        ready: allEnvVarsPresent && serviceInitialized
+      },
+      message: !allEnvVarsPresent
+        ? 'Missing required environment variables for Gmail API'
+        : !serviceInitialized
+        ? 'Gmail service not initialized - call /init endpoint'
+        : 'Gmail service configuration is ready'
+    });
+  } catch (error) {
+    console.error('Error checking Gmail config:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check Gmail configuration',
+      error: error.message
+    });
+  }
+});
+
+/**
  * Initialize Gmail service with credentials
  * POST /api/gmail/init
  */
 router.post('/init', async (req, res) => {
   try {
+    // Check if environment variables are available when not providing credentials
+    if (!req.body.credentials) {
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        return res.status(400).json({
+          success: false,
+          message: 'Gmail service cannot be initialized. Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET',
+          envCheck: {
+            GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+            GOOGLE_REDIRECT_URI: !!process.env.GOOGLE_REDIRECT_URI
+          }
+        });
+      }
+    }
+
     const credentials = req.body.credentials || {
       installed: {
         client_id: process.env.GOOGLE_CLIENT_ID,
@@ -88,6 +147,14 @@ router.post('/set-tokens', async (req, res) => {
 
     // Initialize service if not already initialized
     if (!gmailService.oauth2Client) {
+      // Check if required environment variables are available
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        return res.status(400).json({
+          success: false,
+          message: 'Gmail service cannot be initialized. Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET'
+        });
+      }
+
       const credentials = {
         installed: {
           client_id: process.env.GOOGLE_CLIENT_ID,
@@ -115,10 +182,56 @@ router.post('/set-tokens', async (req, res) => {
 });
 
 /**
+ * Check Gmail service initialization status
+ */
+const checkGmailService = async (req, res, next) => {
+  try {
+    // Check if Gmail service is initialized
+    if (!gmailService.oauth2Client) {
+      // Try to auto-initialize if environment variables are available
+      if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+        const credentials = {
+          installed: {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uris: [process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob']
+          }
+        };
+        await gmailService.initialize(credentials);
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Gmail service not initialized. Missing environment variables or initialization required.',
+          action: 'initialize'
+        });
+      }
+    }
+
+    // Check if service has valid credentials
+    if (!gmailService.oauth2Client.credentials || !gmailService.oauth2Client.credentials.access_token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Gmail service not authenticated. Please authenticate first.',
+        action: 'authenticate'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Gmail service check error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify Gmail service status',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Debug email search
  * GET /api/gmail/debug-search
  */
-router.get('/debug-search', async (req, res) => {
+router.get('/debug-search', checkGmailService, async (req, res) => {
   try {
     const { query = '', maxResults = 5 } = req.query;
 
@@ -165,24 +278,9 @@ router.get('/debug-search', async (req, res) => {
  * Fetch and parse emails for load data
  * GET /api/gmail/emails
  */
-router.get('/emails', async (req, res) => {
+router.get('/emails', checkGmailService, async (req, res) => {
   try {
     const { maxResults = 20, query } = req.query;
-
-    // Check if service is initialized
-    if (!gmailService.oauth2Client) {
-      return res.status(400).json({
-        success: false,
-        message: 'Gmail service not initialized. Please authenticate first.'
-      });
-    }
-
-    if (!gmailService.oauth2Client.credentials || !gmailService.oauth2Client.credentials.access_token) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid Gmail credentials. Please authenticate first.'
-      });
-    }
 
     // Get load-related emails
     const emails = query
@@ -235,7 +333,7 @@ router.get('/emails', async (req, res) => {
  * Create load from email data
  * POST /api/gmail/create-load
  */
-router.post('/create-load', async (req, res) => {
+router.post('/create-load', checkGmailService, async (req, res) => {
   try {
     const { emailId, loadData, overrides = {} } = req.body;
 
@@ -300,7 +398,7 @@ router.post('/create-load', async (req, res) => {
  * Get email content by ID
  * GET /api/gmail/email/:id
  */
-router.get('/email/:id', async (req, res) => {
+router.get('/email/:id', checkGmailService, async (req, res) => {
   try {
     const { id } = req.params;
     const email = await gmailService.getEmailById(id);
@@ -326,24 +424,9 @@ router.get('/email/:id', async (req, res) => {
  * Auto-process last 100 emails and create loads with high confidence
  * POST /api/gmail/auto-process
  */
-router.post('/auto-process', async (req, res) => {
+router.post('/auto-process', checkGmailService, async (req, res) => {
   try {
     const { minConfidence = 70, dryRun = false } = req.body;
-
-    // Check if service is initialized
-    if (!gmailService.oauth2Client) {
-      return res.status(400).json({
-        success: false,
-        message: 'Gmail service not initialized. Please authenticate first.'
-      });
-    }
-
-    if (!gmailService.oauth2Client.credentials || !gmailService.oauth2Client.credentials.access_token) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid Gmail credentials. Please authenticate first.'
-      });
-    }
 
     console.log(`Starting auto-process: minConfidence=${minConfidence}, dryRun=${dryRun}`);
 

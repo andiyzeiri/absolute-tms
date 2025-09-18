@@ -52,7 +52,15 @@ class GmailService {
     if (!this.oauth2Client) {
       throw new Error('OAuth2 client not initialized. Call initialize() first.');
     }
-    this.oauth2Client.setCredentials(tokens);
+    if (!tokens) {
+      throw new Error('Tokens are required for authentication.');
+    }
+    try {
+      this.oauth2Client.setCredentials(tokens);
+    } catch (error) {
+      console.error('Error setting credentials:', error);
+      throw new Error(`Failed to set OAuth2 credentials: ${error.message}`);
+    }
   }
 
   /**
@@ -77,7 +85,19 @@ class GmailService {
       return response.data.messages || [];
     } catch (error) {
       console.error('Error searching emails:', error);
-      throw error;
+
+      // Provide more specific error messages based on error type
+      if (error.code === 401) {
+        throw new Error('Gmail authentication expired or invalid. Please re-authenticate.');
+      } else if (error.code === 403) {
+        throw new Error('Gmail API access forbidden. Check permissions and API quotas.');
+      } else if (error.code === 404) {
+        throw new Error('Gmail API endpoint not found or user mailbox not accessible.');
+      } else if (error.message && error.message.includes('oauth2Client')) {
+        throw new Error('Gmail OAuth client not properly initialized. Please initialize the service first.');
+      } else {
+        throw new Error(`Gmail API error: ${error.message || 'Unknown error occurred'}`);
+      }
     }
   }
 
@@ -103,7 +123,19 @@ class GmailService {
       return response.data;
     } catch (error) {
       console.error('Error getting email:', error);
-      throw error;
+
+      // Provide more specific error messages based on error type
+      if (error.code === 401) {
+        throw new Error('Gmail authentication expired or invalid. Please re-authenticate.');
+      } else if (error.code === 403) {
+        throw new Error('Gmail API access forbidden. Check permissions and API quotas.');
+      } else if (error.code === 404) {
+        throw new Error(`Email with ID ${messageId} not found or not accessible.`);
+      } else if (error.message && error.message.includes('oauth2Client')) {
+        throw new Error('Gmail OAuth client not properly initialized. Please initialize the service first.');
+      } else {
+        throw new Error(`Gmail API error: ${error.message || 'Unknown error occurred'}`);
+      }
     }
   }
 
