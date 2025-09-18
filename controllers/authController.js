@@ -60,7 +60,8 @@ class AuthController {
       const { accessToken, refreshToken } = JWTUtils.generateTokens({
         userId: savedUser._id,
         email: savedUser.email,
-        role: savedUser.role
+        role: savedUser.role,
+        company: savedUser.company
       });
 
       // Update user with refresh token
@@ -118,7 +119,8 @@ class AuthController {
       const { accessToken, refreshToken } = JWTUtils.generateTokens({
         userId: user._id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        company: user.company
       });
 
       // Update last login and refresh token
@@ -177,7 +179,8 @@ class AuthController {
       const { accessToken, refreshToken: newRefreshToken } = JWTUtils.generateTokens({
         userId: user._id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        company: user.company
       });
 
       // Update refresh token
