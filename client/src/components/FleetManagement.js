@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Card,
@@ -185,9 +184,14 @@ const FleetManagement = () => {
   });
 
   useEffect(() => {
-    // Only fetch from API if no saved vehicles exist
+    // Load demo data if no vehicles exist
     if (vehicles.length === 0) {
-      fetchVehicles();
+      setVehicles(demoVehicles);
+      setSnackbar({
+        open: true,
+        message: `Loaded ${demoVehicles.length} demo vehicles`,
+        severity: 'success'
+      });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -199,135 +203,6 @@ const FleetManagement = () => {
       window.dispatchEvent(new CustomEvent('vehiclesUpdated'));
     }
   }, [vehicles]);
-
-  // Helper function to normalize vehicle data from API to frontend format
-  const normalizeVehicle = (vehicle) => {
-    return {
-      id: vehicle._id || vehicle.id,
-      _id: vehicle._id || vehicle.id,
-      vehicleNumber: vehicle.vehicleNumber,
-      make: vehicle.make,
-      model: vehicle.model,
-      year: vehicle.year,
-      type: vehicle.type,
-      plateNumber: vehicle.registration?.plateNumber || vehicle.plateNumber,
-      vin: vehicle.registration?.vinNumber || vehicle.vin,
-      driver: vehicle.assignedDriver ?
-        `${vehicle.assignedDriver.firstName} ${vehicle.assignedDriver.lastName}` :
-        (vehicle.driver || 'Unassigned'),
-      status: vehicle.status,
-      location: vehicle.location?.currentAddress || vehicle.location || 'Unknown',
-      mileage: vehicle.maintenance?.odometerReading || vehicle.mileage || 0,
-      fuelLevel: vehicle.fuelLevel || Math.floor(Math.random() * 100), // Default to random for demo
-      lastService: vehicle.maintenance?.lastServiceDate || vehicle.lastService,
-      nextService: vehicle.maintenance?.nextServiceDate || vehicle.nextService,
-      insurance: {
-        provider: vehicle.insurance?.provider || vehicle.insurance?.provider,
-        policyNumber: vehicle.insurance?.policyNumber || vehicle.insurance?.policyNumber,
-        expiryDate: vehicle.insurance?.expiryDate || vehicle.insurance?.expiryDate
-      },
-      alerts: vehicle.alerts || []
-    };
-  };
-
-  const fetchVehicles = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('tms_access_token');
-
-      // If no token, handle based on environment
-      if (!token) {
-        if (process.env.NODE_ENV === 'development') {
-          setVehicles(demoVehicles);
-          setSnackbar({
-            open: true,
-            message: 'Not logged in - using demo data in development',
-            severity: 'info'
-          });
-        } else {
-          setVehicles([]);
-          setSnackbar({
-            open: true,
-            message: 'Please login to access your fleet management',
-            severity: 'warning'
-          });
-        }
-        return;
-      }
-
-      const response = await axios.get('/api/vehicles', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = response.data;
-      console.log('Vehicles API response:', data);
-      const normalizedVehicles = (data.data || []).map(normalizeVehicle);
-      setVehicles(normalizedVehicles);
-
-      // Show success message when using real data
-      if (normalizedVehicles.length === 0) {
-        setSnackbar({
-          open: true,
-          message: 'Connected to database - No vehicles found. Add your first vehicle!',
-          severity: 'info'
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: `Loaded ${normalizedVehicles.length} vehicles from database`,
-          severity: 'success'
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
-
-      // Handle axios errors
-      if (error.response) {
-        const status = error.response.status;
-        console.error('API Error details:', error.response.data);
-
-        // Only fall back to demo data in development
-        if (process.env.NODE_ENV === 'development') {
-          setVehicles(demoVehicles);
-          setSnackbar({
-            open: true,
-            message: `API Error (${status}): Using demo data in development`,
-            severity: 'warning'
-          });
-        } else {
-          // In production, show empty state instead of demo data
-          setVehicles([]);
-          setSnackbar({
-            open: true,
-            message: status === 401 ? 'Session expired - please login again' : `Server error (${status}) - please contact support`,
-            severity: 'error'
-          });
-        }
-      } else {
-        // Network error
-        if (process.env.NODE_ENV === 'development') {
-          setVehicles(demoVehicles);
-          setSnackbar({
-            open: true,
-            message: 'Network error: Using demo data in development',
-            severity: 'warning'
-          });
-        } else {
-          setVehicles([]);
-          setSnackbar({
-            open: true,
-            message: 'Network error - please check your connection and refresh',
-            severity: 'error'
-          });
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusConfig = (status) => {
     const statusConfigs = {
@@ -342,7 +217,7 @@ const FleetManagement = () => {
   const getAlertSeverityColor = (severity) => {
     const colors = {
       low: '#10B981',
-      medium: '#F59E0B', 
+      medium: '#F59E0B',
       high: '#EF4444',
       critical: '#DC2626'
     };
@@ -361,7 +236,7 @@ const FleetManagement = () => {
   const handleOpenDialog = (mode, vehicle = null) => {
     setDialogMode(mode);
     setSelectedVehicle(vehicle);
-    
+
     if (vehicle && mode === 'edit') {
       setFormData({
         vehicleNumber: vehicle.vehicleNumber,
@@ -409,7 +284,16 @@ const FleetManagement = () => {
   const handleSaveVehicle = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('tms_access_token');
+      // Validate required fields
+      if (!formData.vehicleNumber) {
+        setSnackbar({
+          open: true,
+          message: 'Vehicle Number is required',
+          severity: 'error'
+        });
+        setLoading(false);
+        return;
+      }
 
       if (dialogMode === 'add') {
         // Generate a unique ID for the new vehicle
@@ -420,7 +304,7 @@ const FleetManagement = () => {
           vehicleNumber: formData.vehicleNumber,
           make: formData.make,
           model: formData.model,
-          year: parseInt(formData.year),
+          year: parseInt(formData.year) || null,
           type: formData.type,
           plateNumber: formData.plateNumber,
           vin: formData.vin,
@@ -439,69 +323,12 @@ const FleetManagement = () => {
           alerts: []
         };
 
-        if (token) {
-          // Try API first if authenticated
-          try {
-            const vehicleData = {
-              vehicleNumber: formData.vehicleNumber,
-              make: formData.make,
-              model: formData.model,
-              year: parseInt(formData.year),
-              type: formData.type.toLowerCase(),
-              registration: {
-                plateNumber: formData.plateNumber,
-                vinNumber: formData.vin
-              },
-              status: formData.status,
-              maintenance: {
-                odometerReading: parseInt(formData.mileage) || 0,
-                lastServiceDate: new Date(),
-                nextServiceDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-              },
-              insurance: {
-                provider: formData.insuranceProvider,
-                policyNumber: formData.policyNumber,
-                expiryDate: new Date(formData.insuranceExpiry)
-              },
-              location: {
-                currentAddress: 'Base Location'
-              }
-            };
-
-            const response = await axios.post('/api/vehicles', vehicleData, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            setSnackbar({ open: true, message: 'Vehicle added successfully!', severity: 'success' });
-            fetchVehicles(); // Refresh the list
-            handleCloseDialog();
-            return;
-          } catch (error) {
-            console.log('API failed, saving locally:', error);
-          }
-        }
-
-        // Handle fallback based on environment
-        if (process.env.NODE_ENV === 'development') {
-          // In development, add to local state as demo data
-          setVehicles([...vehicles, newVehicle]);
-          setSnackbar({
-            open: true,
-            message: token ? 'Vehicle added to demo data (API unavailable)' : 'Vehicle added to demo data!',
-            severity: 'success'
-          });
-        } else {
-          // In production, show error instead of using demo data
-          setSnackbar({
-            open: true,
-            message: token ? 'Failed to save vehicle - server error' : 'Please login to save vehicles',
-            severity: 'error'
-          });
-          return; // Don't close dialog, let user try again
-        }
+        setVehicles([...vehicles, newVehicle]);
+        setSnackbar({
+          open: true,
+          message: 'Vehicle added successfully!',
+          severity: 'success'
+        });
 
       } else if (dialogMode === 'edit') {
         const updatedVehicle = {
@@ -509,7 +336,7 @@ const FleetManagement = () => {
           vehicleNumber: formData.vehicleNumber,
           make: formData.make,
           model: formData.model,
-          year: parseInt(formData.year),
+          year: parseInt(formData.year) || selectedVehicle.year,
           type: formData.type,
           plateNumber: formData.plateNumber,
           vin: formData.vin,
@@ -524,72 +351,15 @@ const FleetManagement = () => {
           }
         };
 
-        if (token) {
-          // Try API first if authenticated
-          try {
-            const vehicleData = {
-              vehicleNumber: formData.vehicleNumber,
-              make: formData.make,
-              model: formData.model,
-              year: parseInt(formData.year),
-              type: formData.type.toLowerCase(),
-              registration: {
-                plateNumber: formData.plateNumber,
-                vinNumber: formData.vin
-              },
-              status: formData.status,
-              maintenance: {
-                odometerReading: parseInt(formData.mileage) || 0,
-                lastServiceDate: selectedVehicle.lastService || new Date(),
-                nextServiceDate: selectedVehicle.nextService || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-              },
-              insurance: {
-                provider: formData.insuranceProvider,
-                policyNumber: formData.policyNumber,
-                expiryDate: new Date(formData.insuranceExpiry)
-              },
-              location: {
-                currentAddress: selectedVehicle.location || 'Base Location'
-              }
-            };
-
-            const response = await axios.put(`/api/vehicles/${selectedVehicle._id || selectedVehicle.id}`, vehicleData, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            setSnackbar({ open: true, message: 'Vehicle updated successfully!', severity: 'success' });
-            fetchVehicles(); // Refresh the list
-            handleCloseDialog();
-            return;
-          } catch (error) {
-            console.log('API failed, saving locally:', error);
-          }
-        }
-
-        // Handle fallback based on environment
-        if (process.env.NODE_ENV === 'development') {
-          // In development, update local state as demo data
-          const updatedVehicles = vehicles.map(vehicle =>
-            vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
-          );
-          setVehicles(updatedVehicles);
-          setSnackbar({
-            open: true,
-            message: token ? 'Vehicle updated in demo data (API unavailable)' : 'Vehicle updated in demo data!',
-            severity: 'success'
-          });
-        } else {
-          // In production, show error instead of using demo data
-          setSnackbar({
-            open: true,
-            message: token ? 'Failed to update vehicle - server error' : 'Please login to update vehicles',
-            severity: 'error'
-          });
-          return; // Don't close dialog, let user try again
-        }
+        const updatedVehicles = vehicles.map(vehicle =>
+          vehicle.id === selectedVehicle.id ? updatedVehicle : vehicle
+        );
+        setVehicles(updatedVehicles);
+        setSnackbar({
+          open: true,
+          message: 'Vehicle updated successfully!',
+          severity: 'success'
+        });
       }
 
       handleCloseDialog();
@@ -611,47 +381,13 @@ const FleetManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem('tms_access_token');
-
-      if (token) {
-        // Try API first if authenticated
-        try {
-          const response = await axios.delete(`/api/vehicles/${vehicleId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          setSnackbar({ open: true, message: 'Vehicle deleted successfully!', severity: 'success' });
-          fetchVehicles(); // Refresh the list
-          handleCloseMenu();
-          return;
-        } catch (error) {
-          console.log('API failed, deleting locally:', error);
-        }
-      }
-
-      // Handle fallback based on environment
-      if (process.env.NODE_ENV === 'development') {
-        // In development, delete from local state as demo data
-        const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
-        setVehicles(updatedVehicles);
-        setSnackbar({
-          open: true,
-          message: token ? 'Vehicle deleted from demo data (API unavailable)' : 'Vehicle deleted from demo data!',
-          severity: 'success'
-        });
-      } else {
-        // In production, show error instead of using demo data
-        setSnackbar({
-          open: true,
-          message: token ? 'Failed to delete vehicle - server error' : 'Please login to delete vehicles',
-          severity: 'error'
-        });
-        return; // Don't proceed with deletion
-      }
-
+      const updatedVehicles = vehicles.filter(vehicle => vehicle.id !== vehicleId);
+      setVehicles(updatedVehicles);
+      setSnackbar({
+        open: true,
+        message: 'Vehicle deleted successfully!',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error deleting vehicle:', error);
       setSnackbar({ open: true, message: error.message || 'Error deleting vehicle', severity: 'error' });
@@ -669,7 +405,13 @@ const FleetManagement = () => {
     setMenuVehicleId(null);
   };
 
-  const vehicleTypes = ['Semi Truck', 'Delivery Van', 'Box Truck', 'Flatbed', 'Tanker', 'Refrigerated'];
+  const vehicleTypes = [
+    { label: 'Semi Truck', value: 'semi' },
+    { label: 'Delivery Van', value: 'van' },
+    { label: 'Box Truck', value: 'truck' },
+    { label: 'Pickup Truck', value: 'pickup' },
+    { label: 'Trailer', value: 'trailer' }
+  ];
   const makes = ['Freightliner', 'Peterbilt', 'Kenworth', 'Volvo', 'Mack', 'International', 'Ford', 'Mercedes'];
 
   return (
@@ -689,7 +431,7 @@ const FleetManagement = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={() => handleOpenDialog('add')}
-            sx={{ 
+            sx={{
               bgcolor: '#4F46E5',
               '&:hover': { bgcolor: '#3730A3' }
             }}
@@ -891,17 +633,17 @@ const FleetManagement = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <LocalGasStation sx={{ color: '#6B7280', mr: 1, fontSize: 16 }} />
                         <Box sx={{ flex: 1, mr: 1 }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={vehicle.fuelLevel} 
-                            sx={{ 
-                              height: 6, 
+                          <LinearProgress
+                            variant="determinate"
+                            value={vehicle.fuelLevel}
+                            sx={{
+                              height: 6,
                               borderRadius: 3,
                               bgcolor: '#E5E7EB',
                               '& .MuiLinearProgress-bar': {
                                 bgcolor: vehicle.fuelLevel < 25 ? '#EF4444' : vehicle.fuelLevel < 50 ? '#F59E0B' : '#10B981'
                               }
-                            }} 
+                            }}
                           />
                         </Box>
                         <Typography variant="caption" sx={{ color: '#6B7280', minWidth: '30px' }}>
@@ -941,7 +683,7 @@ const FleetManagement = () => {
               No vehicles found
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-              {searchTerm || filterStatus !== 'all' 
+              {searchTerm || filterStatus !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'Get started by adding your first vehicle'
               }
@@ -979,7 +721,7 @@ const FleetManagement = () => {
           Schedule Maintenance
         </MenuItem>
         <Divider />
-        <MenuItem 
+        <MenuItem
           onClick={() => handleDeleteVehicle(menuVehicleId)}
           sx={{ color: '#DC2626' }}
         >
@@ -989,17 +731,17 @@ const FleetManagement = () => {
       </Menu>
 
       {/* Add/Edit Dialog */}
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog} 
-        maxWidth="md" 
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {dialogMode === 'add' ? 'Add New Vehicle' : 
+              {dialogMode === 'add' ? 'Add New Vehicle' :
                dialogMode === 'edit' ? 'Edit Vehicle' : 'Vehicle Details'}
             </Typography>
             <IconButton onClick={handleCloseDialog} size="small">
@@ -1027,7 +769,7 @@ const FleetManagement = () => {
                   disabled={dialogMode === 'view'}
                 >
                   {vehicleTypes.map(type => (
-                    <MenuItem key={type} value={type}>{type}</MenuItem>
+                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -1187,8 +929,8 @@ const FleetManagement = () => {
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ borderRadius: 2 }}
         >

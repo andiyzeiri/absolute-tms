@@ -13,22 +13,22 @@ const vehicleSchema = new mongoose.Schema({
   },
   make: {
     type: String,
-    required: true
+    required: false
   },
   model: {
     type: String,
-    required: true
+    required: false
   },
   year: {
     type: Number,
-    required: true,
+    required: false,
     min: 1980,
     max: new Date().getFullYear() + 1
   },
   type: {
     type: String,
     enum: ['truck', 'van', 'trailer', 'semi', 'pickup'],
-    required: true
+    required: false
   },
   specifications: {
     capacity: {
@@ -54,8 +54,9 @@ const vehicleSchema = new mongoose.Schema({
   registration: {
     plateNumber: {
       type: String,
-      required: true,
-      unique: true,
+      required: false,
+      unique: false,
+      sparse: true,
       uppercase: true
     },
     state: String,
@@ -200,7 +201,7 @@ vehicleSchema.pre('save', function(next) {
 vehicleSchema.index({ company: 1, vehicleNumber: 1 }, { unique: true });
 vehicleSchema.index({ status: 1 });
 vehicleSchema.index({ assignedDriver: 1 });
-vehicleSchema.index({ 'registration.plateNumber': 1 });
+vehicleSchema.index({ 'registration.plateNumber': 1 }, { sparse: true });
 vehicleSchema.index({ company: 1 });
 
 module.exports = mongoose.model('Vehicle', vehicleSchema);
