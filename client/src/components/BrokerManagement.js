@@ -182,7 +182,17 @@ const BrokerManagement = () => {
       }
     } catch (error) {
       console.error('Error loading brokers:', error);
-      setBrokers([]); // No demo data fallback - empty array for real data only
+
+      // Handle authentication errors differently
+      if (error.response?.status === 401) {
+        // Token expired - redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+
+      // For other errors, don't clear existing data - keep current brokers
+      // setBrokers([]) removed to prevent data loss on network errors
     }
   };
 

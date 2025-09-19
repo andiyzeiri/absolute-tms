@@ -193,8 +193,16 @@ const CustomerManagement = () => {
       }
     } catch (error) {
       console.error('Error loading customers:', error);
-      // No fallback to demo data - keep empty array for real data only
-      setCustomers([]);
+
+      // Handle authentication errors differently
+      if (error.response?.status === 401) {
+        // Token expired - redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+
+      // For other errors, don't clear existing data - keep current customers
       setSnackbar({
         open: true,
         message: 'Failed to load customers from server. Please check your connection.',
