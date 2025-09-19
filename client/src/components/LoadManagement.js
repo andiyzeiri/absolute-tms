@@ -304,57 +304,7 @@ const LoadManagement = () => {
     }
   };
 
-  const loadCustomers = () => {
-    const savedCustomers = localStorage.getItem('tms_customers');
-    if (savedCustomers) {
-      const customersData = JSON.parse(savedCustomers);
-      // Format customers for dropdown: company names
-      const customerOptions = customersData.map(customer => ({
-        id: customer.id,
-        company: customer.company,
-        contactPerson: customer.contactPerson,
-        status: customer.status,
-        motorCarrier: customer.motorCarrier
-      }));
-      setAvailableCustomers(customerOptions);
-    } else {
-      // Initialize with demo customers if none exist
-      const demoCustomers = [
-        { id: 'C-001', company: 'Walmart Canada Corp', contactPerson: 'Robert Johnson', status: 'active', motorCarrier: 'MC-111222' },
-        { id: 'C-002', company: 'Canadian Tire Corporation', contactPerson: 'Michelle Davis', status: 'active', motorCarrier: 'MC-333444' },
-        { id: 'C-003', company: 'Shoppers Drug Mart', contactPerson: 'David Chen', status: 'active', motorCarrier: 'MC-555666' },
-        { id: 'C-004', company: 'Metro Inc.', contactPerson: 'Sarah Thompson', status: 'active', motorCarrier: 'MC-777888' },
-        { id: 'C-005', company: 'Home Depot Canada', contactPerson: 'Mark Wilson', status: 'pending', motorCarrier: 'MC-999000' }
-      ];
-      setAvailableCustomers(demoCustomers);
-    }
-  };
-
-  const loadBrokers = () => {
-    const savedBrokers = localStorage.getItem('tms_brokers');
-    if (savedBrokers) {
-      const brokersData = JSON.parse(savedBrokers);
-      // Format brokers for dropdown: company names
-      const brokerOptions = brokersData.map(broker => ({
-        id: broker.id,
-        company: broker.company,
-        contactPerson: broker.contactPerson,
-        status: broker.status,
-        motorCarrier: broker.motorCarrier
-      }));
-      setAvailableBrokers(brokerOptions);
-    } else {
-      // Initialize with demo brokers if none exist
-      const demoBrokers = [
-        { id: 'B-001', company: 'Global Freight Brokers', contactPerson: 'Michael Thompson', status: 'active', motorCarrier: 'MC-789654' },
-        { id: 'B-002', company: 'Prime Logistics Solutions', contactPerson: 'Sarah Chen', status: 'active', motorCarrier: 'MC-456123' },
-        { id: 'B-003', company: 'Atlantic Freight Partners', contactPerson: 'David Murphy', status: 'active', motorCarrier: 'MC-321987' },
-        { id: 'B-004', company: 'Prairie Express Brokers', contactPerson: 'Jennifer Wilson', status: 'active', motorCarrier: 'MC-654987' },
-        { id: 'B-005', company: 'Northern Transport Hub', contactPerson: 'Robert Lee', status: 'pending', motorCarrier: 'MC-555123' }
-      ];
-      setAvailableBrokers(demoBrokers);
-    }
-  };
+  // Old localStorage-based functions removed - using API instead
 
   useEffect(() => {
     loadLoads();
