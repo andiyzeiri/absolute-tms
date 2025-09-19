@@ -737,7 +737,7 @@ const LoadManagement = () => {
       // Check if customer is new and add to available customers
       if (formData.customer && formData.customer.trim()) {
         const customerExists = availableCustomers.some(customer =>
-          customer.company.toLowerCase() === formData.customer.toLowerCase()
+          customer.companyName?.toLowerCase() === formData.customer.toLowerCase()
         );
 
         if (!customerExists) {
@@ -759,7 +759,7 @@ const LoadManagement = () => {
       // Check if broker is new and add to available brokers
       if (formData.broker && formData.broker.trim()) {
         const brokerExists = availableBrokers.some(broker =>
-          broker.company.toLowerCase() === formData.broker.toLowerCase()
+          broker.companyName?.toLowerCase() === formData.broker.toLowerCase()
         );
 
         if (!brokerExists) {
