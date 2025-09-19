@@ -233,14 +233,53 @@ const LoadManagement = () => {
     status: 'pending'
   });
 
-  // Load loads from localStorage
-  const loadLoadsFromStorage = () => {
-    const savedLoads = localStorage.getItem('tms_loads');
-    if (savedLoads) {
-      setLoads(JSON.parse(savedLoads));
-    } else {
-      // Initialize with demo data if no saved loads exist
-      setLoads(demoLoads.slice(0, 3));
+  // Load loads from API
+  const loadLoads = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API_ENDPOINTS.LOADS, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setLoads(response.data.data);
+      } else {
+        setLoads([]); // No demo data fallback - empty array for real data only
+      }
+    } catch (error) {
+      console.error('Error loading loads:', error);
+      setLoads([]); // No demo data fallback - empty array for real data only
+    }
+  };
+
+  // Load customers from API
+  const loadCustomers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API_ENDPOINTS.CUSTOMERS, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setAvailableCustomers(response.data.data.map(c => c.companyName));
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      setAvailableCustomers([]);
+    }
+  };
+
+  // Load brokers from API
+  const loadBrokers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API_ENDPOINTS.BROKERS, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setAvailableBrokers(response.data.data.map(b => b.companyName));
+      }
+    } catch (error) {
+      console.error('Error loading brokers:', error);
+      setAvailableBrokers([]);
     }
   };
 
@@ -265,7 +304,7 @@ const LoadManagement = () => {
     }
   };
 
-  const loadCustomersFromStorage = () => {
+  const loadCustomers = () => {
     const savedCustomers = localStorage.getItem('tms_customers');
     if (savedCustomers) {
       const customersData = JSON.parse(savedCustomers);
@@ -291,7 +330,7 @@ const LoadManagement = () => {
     }
   };
 
-  const loadBrokersFromStorage = () => {
+  const loadBrokers = () => {
     const savedBrokers = localStorage.getItem('tms_brokers');
     if (savedBrokers) {
       const brokersData = JSON.parse(savedBrokers);
@@ -318,10 +357,10 @@ const LoadManagement = () => {
   };
 
   useEffect(() => {
-    loadLoadsFromStorage();
+    loadLoads();
     loadDriversFromStorage();
-    loadCustomersFromStorage();
-    loadBrokersFromStorage();
+    loadCustomers();
+    loadBrokers();
     
     // Listen for driver, customer, and load updates
     const handleDriversUpdate = () => {
@@ -329,15 +368,15 @@ const LoadManagement = () => {
     };
 
     const handleCustomersUpdate = () => {
-      loadCustomersFromStorage();
+      loadCustomers();
     };
 
     const handleBrokersUpdate = () => {
-      loadBrokersFromStorage();
+      loadBrokers();
     };
     
     const handleLoadsUpdate = () => {
-      loadLoadsFromStorage();
+      loadLoads();
     };
     
     window.addEventListener('driversUpdated', handleDriversUpdate);

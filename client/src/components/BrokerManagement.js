@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_ENDPOINTS } from '../config/api';
 import {
   Box,
   Card,
@@ -166,27 +168,22 @@ const BrokerManagement = () => {
     status: 'active'
   });
 
-  // Load brokers from localStorage and calculate totals from load data
-  const loadBrokersFromStorage = () => {
-    const savedBrokers = localStorage.getItem('tms_brokers');
-    const savedLoads = localStorage.getItem('tms_loads');
-    
-    let brokersData;
-    if (savedBrokers) {
-      brokersData = JSON.parse(savedBrokers);
-    } else {
-      // Initialize with demo data if no saved brokers exist
-      brokersData = demoBrokers;
-      localStorage.setItem('tms_brokers', JSON.stringify(demoBrokers));
+  // Load brokers from API
+  const loadBrokers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API_ENDPOINTS.BROKERS, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setBrokers(response.data.data);
+      } else {
+        setBrokers([]); // No demo data fallback - empty array for real data only
+      }
+    } catch (error) {
+      console.error('Error loading brokers:', error);
+      setBrokers([]); // No demo data fallback - empty array for real data only
     }
-
-    // Calculate totals from load data
-    if (savedLoads) {
-      const loadsData = JSON.parse(savedLoads);
-      brokersData = calculateBrokerTotalsFromLoads(brokersData, loadsData);
-    }
-
-    setBrokers(brokersData);
   };
 
   // Calculate broker totals based on actual load data
@@ -221,15 +218,15 @@ const BrokerManagement = () => {
   };
 
   useEffect(() => {
-    loadBrokersFromStorage();
+    loadBrokers();
     
     // Listen for broker updates and load updates
     const handleBrokersUpdate = () => {
-      loadBrokersFromStorage();
+      loadBrokers();
     };
 
     const handleLoadsUpdate = () => {
-      loadBrokersFromStorage(); // Recalculate broker totals when loads change
+      loadBrokers(); // Recalculate broker totals when loads change
     };
     
     window.addEventListener('brokersUpdated', handleBrokersUpdate);
