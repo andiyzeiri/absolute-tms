@@ -1178,10 +1178,18 @@ const LoadManagement = () => {
       });
 
       if (!urlResponse.ok) {
-        throw new Error('Failed to get upload URL');
+        // Fallback to original upload method if S3 upload fails
+        console.log('S3 upload not available, falling back to original method');
+        throw new Error('S3_FALLBACK');
       }
 
       const urlResult = await urlResponse.json();
+
+      if (!urlResult.success) {
+        // S3 not available, fallback to original method
+        console.log('S3 upload not available, falling back to original method');
+        throw new Error('S3_FALLBACK');
+      }
       const { uploadUrl, key, fileName } = urlResult.data;
 
       // Step 2: Upload file directly to S3
@@ -1231,11 +1239,73 @@ const LoadManagement = () => {
       handleCloseUploadDialog();
     } catch (error) {
       console.error('Error uploading file:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Failed to upload file: ' + error.message, 
-        severity: 'error' 
-      });
+
+      // Fallback to original upload method if S3 fails
+      if (error.message === 'S3_FALLBACK') {
+        try {
+          console.log('Attempting fallback upload method...');
+
+          // Convert file to base64 for fallback
+          const fileBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = reader.result.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(selectedFile);
+          });
+
+          const uploadData = {
+            type: currentUpload.type,
+            fileData: fileBase64,
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size
+          };
+
+          // Try original upload endpoint
+          const fallbackToken = localStorage.getItem('token');
+          const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentUpload.loadId), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${fallbackToken}`
+            },
+            body: JSON.stringify(uploadData),
+          });
+
+          if (!response.ok) {
+            throw new Error('Fallback upload failed');
+          }
+
+          const result = await response.json();
+
+          // Reload loads to get updated data
+          await loadLoads();
+
+          setSnackbar({
+            open: true,
+            message: `${currentUpload.type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully!`,
+            severity: 'success'
+          });
+
+          handleCloseUploadDialog();
+          return; // Exit successfully
+        } catch (fallbackError) {
+          console.error('Fallback upload also failed:', fallbackError);
+          setSnackbar({
+            open: true,
+            message: 'Upload failed: ' + fallbackError.message,
+            severity: 'error'
+          });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Failed to upload file: ' + error.message,
+          severity: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
