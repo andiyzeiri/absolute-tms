@@ -9,57 +9,57 @@ const loadSchema = new mongoose.Schema({
   },
   loadNumber: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   customer: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   origin: {
     city: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     province: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     address: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     }
   },
   destination: {
     city: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     province: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     address: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     }
   },
   driver: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   vehicle: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   status: {
     type: String,
@@ -68,11 +68,11 @@ const loadSchema = new mongoose.Schema({
   },
   pickupDate: {
     type: Date,
-    required: true
+    default: Date.now
   },
   deliveryDate: {
     type: Date,
-    required: true
+    default: Date.now
   },
   deliveryTime: {
     type: String,
@@ -86,18 +86,18 @@ const loadSchema = new mongoose.Schema({
   },
   rate: {
     type: Number,
-    required: true,
-    min: 0
+    min: 0,
+    default: 0
   },
   weight: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   commodity: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    default: ''
   },
   notes: {
     type: String,

@@ -778,19 +778,7 @@ const LoadManagement = () => {
         }
       }
 
-      // Validate required fields
-      const requiredFields = ['loadNumber', 'customer', 'originCity', 'originProvince', 'destinationCity', 'destinationProvince', 'driver', 'pickupDate', 'deliveryDate', 'rate', 'weight', 'commodity'];
-      const missingFields = requiredFields.filter(field => !formData[field] || formData[field].toString().trim() === '');
-
-      if (missingFields.length > 0) {
-        setSnackbar({
-          open: true,
-          message: `Please fill in all required fields: ${missingFields.join(', ')}`,
-          severity: 'error'
-        });
-        setLoading(false);
-        return;
-      }
+      // Allow creation with any fields - no validation required
 
       const loadData = {
         loadNumber: formData.loadNumber,

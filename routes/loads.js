@@ -137,43 +137,41 @@ router.post('/', async (req, res) => {
       commodity
     } = req.body;
     
-    // Validate required fields
-    if (!loadNumber || !customer || !origin || !destination || !driver || !vehicle || !pickupDate || !deliveryDate || !rate || !weight || !commodity) {
-      return res.status(400).json({
-        success: false,
-        message: 'All fields are required'
-      });
-    }
+    // No field validation required - all fields are optional
     
-    // Check if load number already exists within the company
+    // Check if load number already exists within the company (only if loadNumber is provided)
     const companyId = req.user.company || req.user._id;
-    const existingLoad = await Load.findOne({
-      loadNumber,
-      company: companyId
-    });
-    if (existingLoad) {
-      return res.status(400).json({
-        success: false,
-        message: 'Load number already exists in your company'
+    if (loadNumber && loadNumber.trim()) {
+      const existingLoad = await Load.findOne({
+        loadNumber: loadNumber.trim(),
+        company: companyId
       });
+      if (existingLoad) {
+        return res.status(400).json({
+          success: false,
+          message: 'Load number already exists in your company'
+        });
+      }
     }
 
-    // Create new load with company
-    const newLoad = new Load({
+    // Create new load with company - handle all optional fields
+    const loadData = {
       company: companyId,
-      loadNumber,
-      customer,
-      origin,
-      destination,
-      driver,
-      vehicle,
+      loadNumber: loadNumber || '',
+      customer: customer || '',
+      origin: origin || { city: '', province: '', address: '' },
+      destination: destination || { city: '', province: '', address: '' },
+      driver: driver || '',
+      vehicle: vehicle || '',
       status: status || 'pending',
-      pickupDate: new Date(pickupDate),
-      deliveryDate: new Date(deliveryDate),
-      rate: parseFloat(rate),
-      weight,
-      commodity
-    });
+      pickupDate: pickupDate ? new Date(pickupDate) : new Date(),
+      deliveryDate: deliveryDate ? new Date(deliveryDate) : new Date(),
+      rate: rate ? parseFloat(rate) : 0,
+      weight: weight || '',
+      commodity: commodity || ''
+    };
+
+    const newLoad = new Load(loadData);
     
     await newLoad.save();
     
