@@ -730,7 +730,7 @@ const LoadManagement = () => {
     setSelectedLoad(null);
   };
 
-  const handleSaveLoad = () => {
+  const handleSaveLoad = async () => {
     try {
       setLoading(true);
 
@@ -807,19 +807,28 @@ const LoadManagement = () => {
         createdAt: dialogMode === 'add' ? new Date().toISOString() : selectedLoad.createdAt
       };
 
-      let updatedLoads;
+      // Make API call to save the load
+      const token = localStorage.getItem('token');
+      let response;
+
       if (dialogMode === 'add') {
-        updatedLoads = [...loads, loadData];
+        response = await axios.post(API_ENDPOINTS.LOADS, loadData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         setSnackbar({ open: true, message: 'Load created successfully!', severity: 'success' });
       } else if (dialogMode === 'edit') {
-        updatedLoads = loads.map(load =>
-          load.id === selectedLoad.id ? loadData : load
-        );
+        // Use the load's _id for update API call
+        const loadId = selectedLoad._id || selectedLoad.id;
+        response = await axios.put(`${API_ENDPOINTS.LOADS}/${loadId}`, loadData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         setSnackbar({ open: true, message: 'Load updated successfully!', severity: 'success' });
       }
 
-      setLoads(updatedLoads);
-      saveLoadsToStorage(updatedLoads);
+      if (response.data.success) {
+        // Reload loads from API to get fresh data
+        await loadLoads();
+      }
     } catch (error) {
       console.error('Error saving load:', error);
       setSnackbar({ 
@@ -833,8 +842,8 @@ const LoadManagement = () => {
     handleCloseDialog();
   };
 
-  const handleDeleteLoad = (loadId) => {
-    const load = loads.find(l => l.id === loadId);
+  const handleDeleteLoad = async (loadId) => {
+    const load = loads.find(l => (l.id || l._id) === loadId);
     const loadNumber = load ? load.loadNumber : 'Load';
 
     if (!window.confirm(`Are you sure you want to delete ${loadNumber}? This action cannot be undone.`)) {
@@ -843,9 +852,14 @@ const LoadManagement = () => {
     }
 
     try {
-      const updatedLoads = loads.filter(load => load.id !== loadId);
-      setLoads(updatedLoads);
-      saveLoadsToStorage(updatedLoads);
+      const token = localStorage.getItem('token');
+      const deleteId = load._id || load.id;
+
+      await axios.delete(`${API_ENDPOINTS.LOADS}/${deleteId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      await loadLoads();
       setSnackbar({
         open: true,
         message: `${loadNumber} deleted successfully!`,
@@ -853,6 +867,11 @@ const LoadManagement = () => {
       });
     } catch (error) {
       console.error('Error deleting load:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
       setSnackbar({
         open: true,
         message: 'Failed to delete load',
@@ -876,39 +895,54 @@ const LoadManagement = () => {
     }
   };
 
-  const handleCellSave = () => {
+  const handleCellSave = async () => {
     if (!editingCell.loadId || !editingCell.field) return;
 
-    const updatedLoads = loads.map(load => {
-      if (load.id === editingCell.loadId) {
-        const updatedLoad = { ...load };
+    const load = loads.find(l => (l.id || l._id) === editingCell.loadId);
+    if (!load) return;
 
-        if (editingCell.field === 'pickupLocation') {
-          const [city, province] = editingValue.split(', ');
-          updatedLoad.origin = { ...updatedLoad.origin, city: city || '', province: province || '' };
-        } else if (editingCell.field === 'deliveryLocation') {
-          const [city, province] = editingValue.split(', ');
-          updatedLoad.destination = { ...updatedLoad.destination, city: city || '', province: province || '' };
-        } else if (editingCell.field === 'rate') {
-          updatedLoad.rate = parseFloat(editingValue) || 0;
-        } else {
-          updatedLoad[editingCell.field] = editingValue;
-        }
+    try {
+      const token = localStorage.getItem('token');
+      const loadId = load._id || load.id;
+      const updatedLoad = { ...load };
 
-        return updatedLoad;
+      if (editingCell.field === 'pickupLocation') {
+        const [city, province] = editingValue.split(', ');
+        updatedLoad.origin = { ...updatedLoad.origin, city: city || '', province: province || '' };
+      } else if (editingCell.field === 'deliveryLocation') {
+        const [city, province] = editingValue.split(', ');
+        updatedLoad.destination = { ...updatedLoad.destination, city: city || '', province: province || '' };
+      } else if (editingCell.field === 'rate') {
+        updatedLoad.rate = parseFloat(editingValue) || 0;
+      } else {
+        updatedLoad[editingCell.field] = editingValue;
       }
-      return load;
-    });
 
-    setLoads(updatedLoads);
-    saveLoadsToStorage(updatedLoads);
-    handleCellCancel();
+      await axios.put(`${API_ENDPOINTS.LOADS}/${loadId}`, updatedLoad, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-    setSnackbar({
-      open: true,
-      message: 'Load updated successfully!',
-      severity: 'success'
-    });
+      await loadLoads();
+      handleCellCancel();
+
+      setSnackbar({
+        open: true,
+        message: 'Load updated successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating load:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      setSnackbar({
+        open: true,
+        message: 'Failed to update load',
+        severity: 'error'
+      });
+    }
   };
 
   const handleCellCancel = () => {
@@ -1116,19 +1150,8 @@ const LoadManagement = () => {
       const result = await response.json();
       const fileInfo = result.data.file;
 
-      // Update the load with file info in localStorage (since we're using localStorage for demo)
-      const updatedLoads = loads.map(load => {
-        if (load.id === currentUpload.loadId) {
-          return {
-            ...load,
-            [currentUpload.type]: fileInfo
-          };
-        }
-        return load;
-      });
-      
-      setLoads(updatedLoads);
-      saveLoadsToStorage(updatedLoads);
+      // Reload loads to get updated data from API
+      await loadLoads();
       
       setSnackbar({ 
         open: true, 
@@ -1183,19 +1206,8 @@ const LoadManagement = () => {
         throw new Error('Delete failed');
       }
 
-      // Update local storage for demo mode
-      const updatedLoads = loads.map(load => {
-        if (load.id === currentPdfManager.loadId) {
-          return {
-            ...load,
-            [currentPdfManager.type]: load[currentPdfManager.type].filter(pdf => pdf._id !== pdfId)
-          };
-        }
-        return load;
-      });
-      
-      setLoads(updatedLoads);
-      saveLoadsToStorage(updatedLoads);
+      // Reload loads to get updated data from API
+      await loadLoads();
       
       setSnackbar({ 
         open: true, 
@@ -1249,19 +1261,8 @@ const LoadManagement = () => {
       const result = await response.json();
       const fileInfo = result.data.file;
 
-      // Update the load with file info in localStorage
-      const updatedLoads = loads.map(load => {
-        if (load.id === currentPdfManager.loadId) {
-          return {
-            ...load,
-            [currentPdfManager.type]: [...(load[currentPdfManager.type] || []), fileInfo]
-          };
-        }
-        return load;
-      });
-      
-      setLoads(updatedLoads);
-      saveLoadsToStorage(updatedLoads);
+      // Reload loads to get updated data from API
+      await loadLoads();
       
       setSnackbar({ 
         open: true, 
