@@ -188,17 +188,17 @@ const CustomerManagement = () => {
       if (response.data.success) {
         setCustomers(response.data.data);
       } else {
-        // Fallback to demo data if API call fails
-        setCustomers(demoCustomers);
+        // No demo data fallback - use empty array for real data only
+        setCustomers([]);
       }
     } catch (error) {
       console.error('Error loading customers:', error);
-      // Fallback to demo data on error
-      setCustomers(demoCustomers);
+      // No fallback to demo data - keep empty array for real data only
+      setCustomers([]);
       setSnackbar({
         open: true,
-        message: 'Failed to load customers from server, using demo data',
-        severity: 'warning'
+        message: 'Failed to load customers from server. Please check your connection.',
+        severity: 'error'
       });
     } finally {
       setLoading(false);
@@ -258,21 +258,7 @@ const CustomerManagement = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save customers to localStorage whenever customers change
-  useEffect(() => {
-    if (customers.length > 0) {
-      // Save the customer data without dispatching update event to avoid infinite loop
-      localStorage.setItem('tms_customers', JSON.stringify(customers));
-    }
-  }, [customers]);
-
-  // Helper function to save customers and dispatch update event
-  const saveCustomersAndDispatch = (customersData) => {
-    setCustomers(customersData);
-    localStorage.setItem('tms_customers', JSON.stringify(customersData));
-    // Dispatch custom event for other components that might listen
-    window.dispatchEvent(new CustomEvent('customersUpdated'));
-  };
+  // Note: No longer using localStorage - all customer data is stored via API
 
   const getStatusColor = (status) => {
     const statusColors = {
@@ -331,87 +317,87 @@ const CustomerManagement = () => {
     setSelectedCustomer(null);
   };
 
-  const handleSaveCustomer = () => {
-    if (dialogMode === 'add') {
-      const newCustomer = {
-        id: `C-${String(customers.length + 1).padStart(3, '0')}`,
-        company: formData.company,
+  const handleSaveCustomer = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const customerData = {
+        customerId: dialogMode === 'add' ? `C-${String(customers.length + 1).padStart(3, '0')}` : selectedCustomer.customerId,
+        companyName: formData.company,
         contactPerson: formData.contactPerson,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
         industry: formData.industry,
-        rating: 0,
         status: formData.status,
-        totalShipments: 0,
-        totalRevenue: 0,
-        lastShipment: new Date().toISOString(),
-        joinedDate: new Date().toISOString(),
         paymentTerms: formData.paymentTerms,
         creditLimit: parseInt(formData.creditLimit) || 0,
         notes: formData.notes,
         motorCarrier: formData.motorCarrier || ''
       };
-      
-      const updatedCustomers = [...customers, newCustomer];
-      // Recalculate totals from loads for all customers
-      const savedLoads = localStorage.getItem('tms_loads');
-      const finalCustomers = savedLoads ? 
-        calculateCustomerTotalsFromLoads(updatedCustomers, JSON.parse(savedLoads)) : 
-        updatedCustomers;
-      
-      saveCustomersAndDispatch(finalCustomers);
-      setSnackbar({ open: true, message: 'Customer added successfully!', severity: 'success' });
-    } else if (dialogMode === 'edit') {
-      const updatedCustomers = customers.map(customer => 
-        customer.id === selectedCustomer.id ? {
-          ...customer,
-          company: formData.company,
-          contactPerson: formData.contactPerson,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          industry: formData.industry,
-          status: formData.status,
-          paymentTerms: formData.paymentTerms,
-          creditLimit: parseInt(formData.creditLimit) || 0,
-          notes: formData.notes,
-          motorCarrier: formData.motorCarrier || ''
-        } : customer
-      );
-      
-      // Recalculate totals from loads for all customers
-      const savedLoads = localStorage.getItem('tms_loads');
-      const finalCustomers = savedLoads ? 
-        calculateCustomerTotalsFromLoads(updatedCustomers, JSON.parse(savedLoads)) : 
-        updatedCustomers;
-      
-      saveCustomersAndDispatch(finalCustomers);
-      setSnackbar({ open: true, message: 'Customer updated successfully!', severity: 'success' });
+
+      let response;
+      if (dialogMode === 'add') {
+        response = await axios.post(API_ENDPOINTS.CREATE_CUSTOMER, customerData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSnackbar({ open: true, message: 'Customer added successfully!', severity: 'success' });
+      } else if (dialogMode === 'edit') {
+        response = await axios.put(API_ENDPOINTS.UPDATE_CUSTOMER(selectedCustomer._id), customerData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSnackbar({ open: true, message: 'Customer updated successfully!', severity: 'success' });
+      }
+
+      if (response.data.success) {
+        // Reload customers from API
+        await loadCustomers();
+        handleCloseDialog();
+      }
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to save customer',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
-    handleCloseDialog();
   };
 
-  const handleDeleteCustomer = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
-    const customerName = customer ? customer.company : 'Customer';
-    
+  const handleDeleteCustomer = async (customerId) => {
+    const customer = customers.find(c => c._id === customerId);
+    const customerName = customer ? customer.companyName : 'Customer';
+
     if (!window.confirm(`Are you sure you want to delete ${customerName}? This action cannot be undone.`)) {
       handleCloseMenu();
       return;
     }
 
-    const updatedCustomers = customers.filter(customer => customer.id !== customerId);
-    
-    // Recalculate totals from loads for remaining customers
-    const savedLoads = localStorage.getItem('tms_loads');
-    const finalCustomers = savedLoads ? 
-      calculateCustomerTotalsFromLoads(updatedCustomers, JSON.parse(savedLoads)) : 
-      updatedCustomers;
-    
-    saveCustomersAndDispatch(finalCustomers);
-    setSnackbar({ open: true, message: `${customerName} deleted successfully!`, severity: 'success' });
-    handleCloseMenu();
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(API_ENDPOINTS.DELETE_CUSTOMER(customerId), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        // Reload customers from API
+        await loadCustomers();
+        setSnackbar({ open: true, message: `${customerName} deleted successfully!`, severity: 'success' });
+        handleCloseMenu();
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to delete customer',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMenuClick = (event, customerId) => {
