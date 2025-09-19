@@ -241,7 +241,25 @@ const LoadManagement = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data.success) {
-        setLoads(response.data.data);
+        // Transform API data to match frontend expectations
+        const transformedLoads = response.data.data.map(load => ({
+          ...load,
+          id: load._id || load.id, // Ensure id field exists for frontend
+          proofOfDelivery: load.proofOfDelivery || [],
+          rateConfirmation: load.rateConfirmation || [],
+          // Ensure origin and destination have proper structure
+          origin: {
+            city: load.origin?.city || '',
+            province: load.origin?.province || '',
+            address: load.origin?.address || ''
+          },
+          destination: {
+            city: load.destination?.city || '',
+            province: load.destination?.province || '',
+            address: load.destination?.address || ''
+          }
+        }));
+        setLoads(transformedLoads);
       } else {
         setLoads([]); // No demo data fallback - empty array for real data only
       }
@@ -408,6 +426,10 @@ const LoadManagement = () => {
     // Fallback to static driving distances database
     // Realistic driving distances between major US cities (truck-friendly routes)
     const drivingDistances = DRIVING_DISTANCES;
+
+    if (!origin?.city || !destination?.city) {
+      return 'N/A'; // Return N/A if cities are missing
+    }
 
     const originKey = origin.city.toLowerCase();
     const destKey = destination.city.toLowerCase();
@@ -781,8 +803,8 @@ const LoadManagement = () => {
       // Allow creation with any fields - no validation required
 
       const loadData = {
-        loadNumber: formData.loadNumber,
-        customer: formData.customer,
+        loadNumber: formData.loadNumber || '',
+        customer: formData.customer || '',
         origin: {
           city: formData.originCity || '',
           province: formData.originProvince || '',
@@ -793,17 +815,22 @@ const LoadManagement = () => {
           province: formData.destinationProvince || '',
           address: formData.destinationAddress || `${formData.destinationCity || ''}, ${formData.destinationProvince || ''}`
         },
-        driver: formData.driver,
+        driver: formData.driver || '',
         vehicle: formData.vehicle || 'TRUCK-001',
         status: formData.status || 'pending',
-        pickupDate: formData.pickupDate,
-        deliveryDate: formData.deliveryDate,
+        pickupDate: formData.pickupDate || new Date().toISOString(),
+        deliveryDate: formData.deliveryDate || new Date().toISOString(),
         pickupTime: formData.pickupTime || '',
         deliveryTime: formData.deliveryTime || '',
         rate: parseFloat(formData.rate) || 0,
-        weight: formData.weight,
-        commodity: formData.commodity,
-        notes: formData.notes || ''
+        weight: formData.weight || '',
+        commodity: formData.commodity || '',
+        notes: formData.notes || '',
+        // Essential fields for frontend features
+        id: dialogMode === 'add' ? `L-${new Date().getFullYear()}-${String(loads.length + 1).padStart(3, '0')}` : selectedLoad.id,
+        createdAt: dialogMode === 'add' ? new Date().toISOString() : selectedLoad.createdAt,
+        proofOfDelivery: dialogMode === 'edit' ? selectedLoad.proofOfDelivery || [] : [],
+        rateConfirmation: dialogMode === 'edit' ? selectedLoad.rateConfirmation || [] : []
       };
 
       // Make API call to save the load
