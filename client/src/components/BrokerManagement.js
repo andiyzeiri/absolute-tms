@@ -51,7 +51,7 @@ import {
 
 const BrokerManagement = () => {
   const [brokers, setBrokers] = useState([]);
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
@@ -322,65 +322,53 @@ const BrokerManagement = () => {
     setSelectedBroker(null);
   };
 
-  const handleSaveBroker = () => {
-    if (dialogMode === 'add') {
-      const newBroker = {
-        id: `B-${String(brokers.length + 1).padStart(3, '0')}`,
-        company: formData.company,
+  const handleSaveBroker = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const brokerData = {
+        brokerId: dialogMode === 'add' ? `B-${String(brokers.length + 1).padStart(3, '0')}` : selectedBroker.brokerId,
+        companyName: formData.company,
         contactPerson: formData.contactPerson,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
         industry: formData.industry,
-        rating: 0,
         status: formData.status,
-        totalShipments: 0,
-        totalRevenue: 0,
-        lastShipment: new Date().toISOString(),
-        joinedDate: new Date().toISOString(),
         paymentTerms: formData.paymentTerms,
         creditLimit: parseInt(formData.creditLimit) || 0,
         notes: formData.notes,
         motorCarrier: formData.motorCarrier || ''
       };
-      
-      const updatedBrokers = [...brokers, newBroker];
-      // Recalculate totals from loads for all brokers
-      const savedLoads = localStorage.getItem('tms_loads');
-      const finalBrokers = savedLoads ? 
-        calculateBrokerTotalsFromLoads(updatedBrokers, JSON.parse(savedLoads)) : 
-        updatedBrokers;
-      
-      saveBrokersAndDispatch(finalBrokers);
-      setSnackbar({ open: true, message: 'Broker added successfully!', severity: 'success' });
-    } else if (dialogMode === 'edit') {
-      const updatedBrokers = brokers.map(broker => 
-        broker.id === selectedBroker.id ? {
-          ...broker,
-          company: formData.company,
-          contactPerson: formData.contactPerson,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          industry: formData.industry,
-          status: formData.status,
-          paymentTerms: formData.paymentTerms,
-          creditLimit: parseInt(formData.creditLimit) || 0,
-          notes: formData.notes,
-          motorCarrier: formData.motorCarrier || ''
-        } : broker
-      );
-      
-      // Recalculate totals from loads for all brokers
-      const savedLoads = localStorage.getItem('tms_loads');
-      const finalBrokers = savedLoads ? 
-        calculateBrokerTotalsFromLoads(updatedBrokers, JSON.parse(savedLoads)) : 
-        updatedBrokers;
-      
-      saveBrokersAndDispatch(finalBrokers);
-      setSnackbar({ open: true, message: 'Broker updated successfully!', severity: 'success' });
+
+      let response;
+      if (dialogMode === 'add') {
+        response = await axios.post(API_ENDPOINTS.CREATE_BROKER, brokerData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSnackbar({ open: true, message: 'Broker added successfully!', severity: 'success' });
+      } else if (dialogMode === 'edit') {
+        response = await axios.put(API_ENDPOINTS.UPDATE_BROKER(selectedBroker._id), brokerData, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSnackbar({ open: true, message: 'Broker updated successfully!', severity: 'success' });
+      }
+
+      if (response.data.success) {
+        // Reload brokers from API
+        await loadBrokers();
+        handleCloseDialog();
+      }
+    } catch (error) {
+      console.error('Error saving broker:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Failed to save broker',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
-    handleCloseDialog();
   };
 
   const handleDeleteBroker = (brokerId) => {
