@@ -778,33 +778,44 @@ const LoadManagement = () => {
         }
       }
 
+      // Validate required fields
+      const requiredFields = ['loadNumber', 'customer', 'originCity', 'originProvince', 'destinationCity', 'destinationProvince', 'driver', 'pickupDate', 'deliveryDate', 'rate', 'weight', 'commodity'];
+      const missingFields = requiredFields.filter(field => !formData[field] || formData[field].toString().trim() === '');
+
+      if (missingFields.length > 0) {
+        setSnackbar({
+          open: true,
+          message: `Please fill in all required fields: ${missingFields.join(', ')}`,
+          severity: 'error'
+        });
+        setLoading(false);
+        return;
+      }
+
       const loadData = {
-        id: dialogMode === 'add' ? `L-${new Date().getFullYear()}-${String(loads.length + 1).padStart(3, '0')}` : selectedLoad.id,
         loadNumber: formData.loadNumber,
         customer: formData.customer,
-        broker: formData.broker,
         origin: {
-          city: formData.originCity,
-          province: formData.originProvince,
-          address: `${formData.originCity}, ${formData.originProvince}`
+          city: formData.originCity || '',
+          province: formData.originProvince || '',
+          address: formData.originAddress || `${formData.originCity || ''}, ${formData.originProvince || ''}`
         },
         destination: {
-          city: formData.destinationCity,
-          province: formData.destinationProvince,
-          address: `${formData.destinationCity}, ${formData.destinationProvince}`
+          city: formData.destinationCity || '',
+          province: formData.destinationProvince || '',
+          address: formData.destinationAddress || `${formData.destinationCity || ''}, ${formData.destinationProvince || ''}`
         },
         driver: formData.driver,
         vehicle: formData.vehicle || 'TRUCK-001',
-        status: formData.status,
-        pickupDate: formData.pickupDate ? new Date(formData.pickupDate).toISOString() : new Date().toISOString(),
-        deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate).toISOString() : new Date().toISOString(),
+        status: formData.status || 'pending',
+        pickupDate: formData.pickupDate,
+        deliveryDate: formData.deliveryDate,
         pickupTime: formData.pickupTime || '',
         deliveryTime: formData.deliveryTime || '',
         rate: parseFloat(formData.rate) || 0,
-        weight: formData.weight || '10,000 lbs',
-        commodity: formData.commodity || 'General Freight',
-        notes: formData.notes || '',
-        createdAt: dialogMode === 'add' ? new Date().toISOString() : selectedLoad.createdAt
+        weight: formData.weight,
+        commodity: formData.commodity,
+        notes: formData.notes || ''
       };
 
       // Make API call to save the load
