@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
   // Load endpoints
   LOADS: `${API_BASE_URL}/api/loads`,
   LOAD_UPLOAD: (loadId) => `${API_BASE_URL}/api/loads/${loadId}/upload`,
+  LOAD_UPLOAD_URL: (loadId) => `${API_BASE_URL}/api/loads/${loadId}/upload-url`,
+  LOAD_UPLOAD_COMPLETE: (loadId) => `${API_BASE_URL}/api/loads/${loadId}/upload-complete`,
   LOAD_DELETE_FILE: (loadId, fileId, type) => `${API_BASE_URL}/api/loads/${loadId}/files/${fileId}?type=${type}`,
   
   // File endpoints

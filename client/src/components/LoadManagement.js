@@ -1154,8 +1154,8 @@ const LoadManagement = () => {
     try {
       setLoading(true);
 
-      // Check file size (AWS API Gateway has 6MB limit, base64 increases size by ~33%)
-      const maxFileSize = 4.5 * 1024 * 1024; // 4.5MB to account for base64 encoding
+      // Check file size (S3 has much higher limits, but let's keep reasonable limits)
+      const maxFileSize = 10 * 1024 * 1024; // 10MB for S3 direct upload
       if (selectedFile.size > maxFileSize) {
         throw new Error(`File too large. Maximum size is ${Math.round(maxFileSize / 1024 / 1024)}MB`);
       }
@@ -1163,51 +1163,61 @@ const LoadManagement = () => {
       // Get auth token
       const token = localStorage.getItem('token');
 
-      // Convert file to base64 for Lambda compatibility
-      const fileBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result.split(',')[1]; // Remove data:application/pdf;base64, prefix
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
-
-      console.log('Upload data sizes:', {
-        originalFileSize: selectedFile.size,
-        base64Length: fileBase64.length,
-        estimatedPayloadSize: JSON.stringify({
-          type: currentUpload.type,
-          fileData: fileBase64,
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size
-        }).length
-      });
-
-      const uploadData = {
-        type: currentUpload.type,
-        fileData: fileBase64,
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size
-      };
-
-      // Make actual API call to upload the file
-      const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentUpload.loadId), {
+      // Step 1: Get signed URL from backend
+      const urlResponse = await fetch(API_ENDPOINTS.LOAD_UPLOAD_URL(currentUpload.loadId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(uploadData),
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          type: currentUpload.type
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (!urlResponse.ok) {
+        throw new Error('Failed to get upload URL');
       }
 
-      const result = await response.json();
-      const fileInfo = result.data.file;
+      const urlResult = await urlResponse.json();
+      const { uploadUrl, key, fileName } = urlResult.data;
+
+      // Step 2: Upload file directly to S3
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': selectedFile.type
+        },
+        body: selectedFile
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to S3');
+      }
+
+      // Step 3: Notify backend that upload is complete
+      const completeResponse = await fetch(API_ENDPOINTS.LOAD_UPLOAD_COMPLETE(currentUpload.loadId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fileName: fileName,
+          key: key,
+          type: currentUpload.type,
+          fileSize: selectedFile.size,
+          originalName: selectedFile.name
+        })
+      });
+
+      if (!completeResponse.ok) {
+        throw new Error('Failed to complete upload');
+      }
+
+      const result = await completeResponse.json();
 
       // Reload loads to get updated data from API
       await loadLoads();

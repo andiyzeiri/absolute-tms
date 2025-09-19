@@ -376,6 +376,146 @@ router.get('/stats/dashboard', async (req, res) => {
   }
 });
 
+// Get S3 signed URL for direct file upload (bypasses API Gateway limits)
+router.post('/:id/upload-url', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileName, fileType, type } = req.body;
+
+    if (!fileName || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'fileName and type are required'
+      });
+    }
+
+    if (!type || (type !== 'proofOfDelivery' && type !== 'rateConfirmation')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Must be proofOfDelivery or rateConfirmation'
+      });
+    }
+
+    // Check if running in Lambda environment
+    const isLambda = process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR;
+
+    if (isLambda) {
+      const AWS = require('aws-sdk');
+      const s3 = new AWS.S3();
+
+      // Create unique filename
+      const uniqueFilename = `${Date.now()}-${fileName}`;
+      const key = `uploads/${req.user.company || req.user._id}/${id}/${type}/${uniqueFilename}`;
+
+      // Generate signed URL for PUT operation
+      const signedUrl = s3.getSignedUrl('putObject', {
+        Bucket: 'absolute-tms-uploads-prod',
+        Key: key,
+        ContentType: fileType || 'application/pdf',
+        Expires: 300, // 5 minutes
+      });
+
+      res.json({
+        success: true,
+        data: {
+          uploadUrl: signedUrl,
+          key: key,
+          fileName: uniqueFilename
+        }
+      });
+    } else {
+      // Local development fallback
+      res.json({
+        success: false,
+        message: 'S3 upload only available in production'
+      });
+    }
+  } catch (error) {
+    console.error('Error generating S3 signed URL:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating upload URL',
+      error: error.message
+    });
+  }
+});
+
+// Finalize S3 upload and save metadata to database
+router.post('/:id/upload-complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileName, key, type, fileSize } = req.body;
+
+    if (!fileName || !key || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'fileName, key, and type are required'
+      });
+    }
+
+    const fileInfo = {
+      filename: fileName,
+      originalName: req.body.originalName || fileName,
+      path: `https://absolute-tms-uploads-prod.s3.amazonaws.com/${key}`,
+      s3Key: key,
+      uploadedAt: new Date(),
+      size: fileSize || 0,
+      _id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      s3Upload: true
+    };
+
+    // Save to database
+    try {
+      const load = await Load.findOne({
+        _id: id,
+        company: req.user.company || req.user._id
+      });
+
+      if (load) {
+        if (!load[type]) {
+          load[type] = [];
+        }
+        load[type].push(fileInfo);
+        await load.save();
+
+        console.log('S3 upload completed and saved to database:', {
+          loadId: id,
+          fileName,
+          key,
+          type
+        });
+
+        res.json({
+          success: true,
+          message: `${type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully`,
+          data: {
+            loadId: id,
+            file: fileInfo
+          }
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Load not found'
+        });
+      }
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      res.status(500).json({
+        success: false,
+        message: 'Error saving file metadata'
+      });
+    }
+  } catch (error) {
+    console.error('Error completing S3 upload:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error completing upload',
+      error: error.message
+    });
+  }
+});
+
 // Test endpoint to debug JSON parsing in Lambda
 router.post('/test-upload', async (req, res) => {
   try {
@@ -412,22 +552,38 @@ router.post('/:id/upload', async (req, res) => {
     // Debug logging
     console.log('Upload request received:', {
       params: req.params,
-      bodyKeys: Object.keys(req.body),
+      bodyKeys: Object.keys(req.body || {}),
       bodyType: typeof req.body,
       contentType: req.headers['content-type'],
-      bodySize: JSON.stringify(req.body).length,
+      bodySize: req.body ? JSON.stringify(req.body).length : 0,
       hasRawBody: !!req.rawBody,
       rawBodySize: req.rawBody ? req.rawBody.length : 0
     });
 
-    const { type, fileData, fileName, fileSize } = req.body;
+    let { type, fileData, fileName, fileSize } = req.body || {};
+
+    // If body is empty but we have raw body, try to parse manually
+    if ((!fileData || !fileName) && req.rawBody) {
+      try {
+        const parsed = JSON.parse(req.rawBody.toString());
+        console.log('Manual parsing successful:', {
+          parsedKeys: Object.keys(parsed),
+          hasFileData: !!parsed.fileData,
+          hasFileName: !!parsed.fileName
+        });
+        ({ type, fileData, fileName, fileSize } = parsed);
+      } catch (parseError) {
+        console.log('Manual parsing failed:', parseError.message);
+      }
+    }
 
     if (!fileData || !fileName) {
-      console.log('Missing data:', {
+      console.log('Missing data after all parsing attempts:', {
         hasFileData: !!fileData,
         hasFileName: !!fileName,
         type,
-        bodyContent: req.body
+        fileNameValue: fileName,
+        fileDataLength: fileData ? fileData.length : 0
       });
       return res.status(400).json({
         success: false,
