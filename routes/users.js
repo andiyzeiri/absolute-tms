@@ -10,6 +10,36 @@ router.use(authenticateToken);
 // Get all users in company (admin only)
 router.get('/', UserController.getUsersByCompany);
 
+// Create new user with password for company (admin only)
+router.post('/create',
+  [
+    require('express-validator').body('firstName')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('First name is required and must be less than 50 characters'),
+    require('express-validator').body('lastName')
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Last name is required and must be less than 50 characters'),
+    require('express-validator').body('email')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please provide a valid email address'),
+    require('express-validator').body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long'),
+    require('express-validator').body('role')
+      .isIn(['admin', 'dispatcher', 'driver', 'customer'])
+      .withMessage('Role must be admin, dispatcher, driver, or customer'),
+    require('express-validator').body('phone')
+      .optional()
+      .matches(/^\+?[\d\s\-\(\)]+$/)
+      .withMessage('Please provide a valid phone number')
+  ],
+  handleValidationErrors,
+  UserController.createUser
+);
+
 // Invite new user to company (admin only)
 router.post('/invite',
   [

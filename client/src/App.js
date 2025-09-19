@@ -20,6 +20,7 @@ import FuelManagement from './components/FuelManagement';
 import EldManagement from './components/EldManagement';
 import EmailIntegration from './components/EmailIntegration';
 import Settings from './components/Settings';
+import TeamManagement from './components/TeamManagement';
 import Sidebar from './components/Sidebar';
 import { LocalShipping } from '@mui/icons-material';
 
@@ -99,6 +100,8 @@ const MainApp = () => {
         return <EmailIntegration />;
       case 'settings':
         return <Settings />;
+      case 'team-management':
+        return <TeamManagement />;
       default:
         return <Dashboard />;
     }

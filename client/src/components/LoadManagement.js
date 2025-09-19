@@ -59,9 +59,13 @@ import {
   CloudUpload
 } from '@mui/icons-material';
 
-const LoadManagement = () => {
-  console.log('🚛 LoadManagement component is starting to load...');
+// Import constants
+import { DRIVING_DISTANCES } from '../constants/drivingDistances';
+import { STATE_COORDS } from '../constants/stateCoords';
+import { US_STATES } from '../constants/usStates';
+import { colors, buttonStyles, borderStyles, backgroundStyles, dialogStyles, cardStyles, textStyles, containerStyles, inputStyles } from '../constants/styles';
 
+const LoadManagement = () => {
   const [loads, setLoads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -353,7 +357,7 @@ const LoadManagement = () => {
     const statusColors = {
       pending: { bgcolor: '#FEF3C7', color: '#D97706', label: 'Pending' },
       in_transit: { bgcolor: '#DBEAFE', color: '#2563EB', label: 'In Transit' },
-      delivered: { bgcolor: '#D1FAE5', color: '#059669', label: 'Delivered' },
+      delivered: { bgcolor: '#D1FAE5', color: colors.success, label: 'Delivered' },
       delayed: { bgcolor: '#FEE2E2', color: '#DC2626', label: 'Delayed' }
     };
     return statusColors[status] || statusColors.pending;
@@ -394,152 +398,17 @@ const LoadManagement = () => {
       });
 
       if (response.data.success) {
-        console.log(`✅ Got ${response.data.distance} miles via ${response.data.apiUsed}`);
         return response.data.distance;
       } else if (response.data.fallback) {
-        console.warn('Backend API suggested fallback to static database');
         // Fall through to static database
       }
     } catch (error) {
-      console.warn('Backend Maps API failed, falling back to static database:', error);
       // Fall through to static database
     }
 
     // Fallback to static driving distances database
     // Realistic driving distances between major US cities (truck-friendly routes)
-    const drivingDistances = {
-      // Major city pairs with actual driving distances
-      'new york-los angeles': 2789,
-      'new york-chicago': 789,
-      'new york-houston': 1628,
-      'new york-phoenix': 2408,
-      'new york-philadelphia': 95,
-      'new york-dallas': 1372,
-      'new york-miami': 1280,
-      'new york-seattle': 2852,
-      'new york-denver': 1780,
-      'new york-atlanta': 872,
-      'new york-boston': 215,
-      'new york-detroit': 641,
-      'new york-nashville': 892,
-      'new york-las vegas': 2534,
-      'new york-san francisco': 2908,
-
-      'los angeles-chicago': 2015,
-      'los angeles-houston': 1374,
-      'los angeles-phoenix': 372,
-      'los angeles-dallas': 1435,
-      'los angeles-miami': 2732,
-      'los angeles-seattle': 1135,
-      'los angeles-denver': 1015,
-      'los angeles-atlanta': 2182,
-      'los angeles-boston': 3017,
-      'los angeles-detroit': 2278,
-      'los angeles-nashville': 1796,
-      'los angeles-las vegas': 270,
-      'los angeles-san francisco': 382,
-
-      'chicago-houston': 1092,
-      'chicago-phoenix': 1729,
-      'chicago-dallas': 925,
-      'chicago-miami': 1377,
-      'chicago-seattle': 2064,
-      'chicago-denver': 920,
-      'chicago-atlanta': 717,
-      'chicago-boston': 983,
-      'chicago-detroit': 282,
-      'chicago-nashville': 472,
-      'chicago-las vegas': 1749,
-      'chicago-san francisco': 2142,
-
-      'houston-phoenix': 1177,
-      'houston-dallas': 239,
-      'houston-miami': 1187,
-      'houston-seattle': 2348,
-      'houston-denver': 879,
-      'houston-atlanta': 789,
-      'houston-boston': 1886,
-      'houston-detroit': 1265,
-      'houston-nashville': 665,
-      'houston-las vegas': 1545,
-      'houston-san francisco': 1645,
-
-      'phoenix-dallas': 887,
-      'phoenix-miami': 2359,
-      'phoenix-seattle': 1420,
-      'phoenix-denver': 602,
-      'phoenix-atlanta': 1808,
-      'phoenix-boston': 2664,
-      'phoenix-detroit': 1986,
-      'phoenix-nashville': 1443,
-      'phoenix-las vegas': 297,
-      'phoenix-san francisco': 653,
-
-      'philadelphia-dallas': 1515,
-      'philadelphia-miami': 1019,
-      'philadelphia-seattle': 2378,
-      'philadelphia-denver': 1691,
-      'philadelphia-atlanta': 666,
-      'philadelphia-boston': 304,
-      'philadelphia-detroit': 453,
-      'philadelphia-nashville': 566,
-      'philadelphia-las vegas': 2407,
-      'philadelphia-san francisco': 2847,
-
-      'dallas-miami': 1308,
-      'dallas-seattle': 2148,
-      'dallas-denver': 641,
-      'dallas-atlanta': 781,
-      'dallas-boston': 1748,
-      'dallas-detroit': 1143,
-      'dallas-nashville': 664,
-      'dallas-las vegas': 1230,
-      'dallas-san francisco': 1732,
-
-      'miami-seattle': 3273,
-      'miami-denver': 2061,
-      'miami-atlanta': 662,
-      'miami-boston': 1504,
-      'miami-detroit': 1279,
-      'miami-nashville': 1001,
-      'miami-las vegas': 2570,
-      'miami-san francisco': 3097,
-
-      'seattle-denver': 1318,
-      'seattle-atlanta': 2618,
-      'seattle-boston': 3099,
-      'seattle-detroit': 2280,
-      'seattle-nashville': 2300,
-      'seattle-las vegas': 1123,
-      'seattle-san francisco': 808,
-
-      'denver-atlanta': 1398,
-      'denver-boston': 1991,
-      'denver-detroit': 1273,
-      'denver-nashville': 1089,
-      'denver-las vegas': 748,
-      'denver-san francisco': 1253,
-
-      'atlanta-boston': 1084,
-      'atlanta-detroit': 699,
-      'atlanta-nashville': 244,
-      'atlanta-las vegas': 1742,
-      'atlanta-san francisco': 2496,
-
-      'boston-detroit': 695,
-      'boston-nashville': 1096,
-      'boston-las vegas': 2752,
-      'boston-san francisco': 3095,
-
-      'detroit-nashville': 467,
-      'detroit-las vegas': 1765,
-      'detroit-san francisco': 2397,
-
-      'nashville-las vegas': 1538,
-      'nashville-san francisco': 2273,
-
-      'las vegas-san francisco': 569
-    };
+    const drivingDistances = DRIVING_DISTANCES;
 
     const originKey = origin.city.toLowerCase();
     const destKey = destination.city.toLowerCase();
@@ -606,23 +475,7 @@ const LoadManagement = () => {
 
   // Helper function to estimate distance category between states
   const getStateDistance = (state1, state2) => {
-    const stateCoords = {
-      'CA': {lat: 36.7783, lng: -119.4179}, 'TX': {lat: 31.9686, lng: -99.9018},
-      'FL': {lat: 27.7663, lng: -82.6404}, 'NY': {lat: 40.7282, lng: -74.0776},
-      'PA': {lat: 41.2033, lng: -77.1945}, 'IL': {lat: 40.3495, lng: -88.9861},
-      'OH': {lat: 40.3888, lng: -82.7649}, 'MI': {lat: 43.3266, lng: -84.5361},
-      'GA': {lat: 33.0406, lng: -83.6431}, 'NC': {lat: 35.5397, lng: -79.8431},
-      'NJ': {lat: 40.2989, lng: -74.5210}, 'VA': {lat: 37.7693, lng: -78.2057},
-      'WA': {lat: 47.4009, lng: -121.4905}, 'AZ': {lat: 33.7298, lng: -111.4312},
-      'MA': {lat: 42.2373, lng: -71.5314}, 'IN': {lat: 39.8494, lng: -86.2583},
-      'TN': {lat: 35.7478, lng: -86.7923}, 'MO': {lat: 38.4561, lng: -92.2884},
-      'MD': {lat: 39.0639, lng: -76.8021}, 'WI': {lat: 44.2619, lng: -89.6165},
-      'MN': {lat: 45.6945, lng: -93.9002}, 'CO': {lat: 39.0598, lng: -105.3111},
-      'AL': {lat: 32.7990, lng: -86.8073}, 'LA': {lat: 31.1695, lng: -91.8678},
-      'KY': {lat: 37.6681, lng: -84.6701}, 'OR': {lat: 44.5672, lng: -122.1269},
-      'OK': {lat: 35.5653, lng: -96.9289}, 'CT': {lat: 41.5978, lng: -72.7554},
-      'NV': {lat: 38.3135, lng: -117.0554}, 'UT': {lat: 40.1500, lng: -111.8947}
-    };
+    const stateCoords = STATE_COORDS;
 
     const coord1 = stateCoords[state1];
     const coord2 = stateCoords[state2];
@@ -664,7 +517,7 @@ const LoadManagement = () => {
           fontWeight: 600,
           color: '#9CA3AF',
           fontSize: '0.8125rem',
-          bgcolor: '#F3F4F6',
+          ...backgroundStyles.medium,
           px: 2,
           py: 0.5,
           borderRadius: 1
@@ -677,9 +530,9 @@ const LoadManagement = () => {
     return (
       <Typography variant="body2" sx={{
         fontWeight: 600,
-        color: '#4F46E5',
+        color: colors.primary,
         fontSize: '0.8125rem',
-        bgcolor: '#EEF2FF',
+        bgcolor: colors.selectionLight,
         px: 2,
         py: 0.5,
         borderRadius: 1
@@ -717,7 +570,7 @@ const LoadManagement = () => {
           fontWeight: 600,
           color: '#9CA3AF',
           fontSize: '0.8125rem',
-          bgcolor: '#F3F4F6',
+          ...backgroundStyles.medium,
           px: 2,
           py: 0.5,
           borderRadius: 1
@@ -732,7 +585,7 @@ const LoadManagement = () => {
     return (
       <Typography variant="body2" sx={{
         fontWeight: 600,
-        color: '#059669',
+        color: colors.success,
         fontSize: '0.8125rem',
         bgcolor: '#ECFDF5',
         px: 2,
@@ -1083,9 +936,9 @@ const LoadManagement = () => {
         <TableCell {...cellProps} sx={{ ...cellProps.sx, p: 0, position: 'relative' }}>
           <Box sx={{
             p: 2,
-            border: '2px solid #4F46E5',
+            border: borderStyles.primary,
             borderRadius: 1,
-            bgcolor: '#EEF2FF',
+            bgcolor: colors.selectionLight,
             minHeight: '48px',
             display: 'flex',
             alignItems: 'center'
@@ -1112,15 +965,15 @@ const LoadManagement = () => {
               rows={field === 'notes' ? 3 : 1}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  border: '2px solid #4F46E5',
+                  border: borderStyles.primary,
                   borderRadius: 1,
-                  bgcolor: '#EEF2FF',
+                  bgcolor: colors.selectionLight,
                   fontSize: '0.875rem',
                   '&:hover': {
-                    borderColor: '#4F46E5'
+                    borderColor: colors.primary
                   },
                   '&.Mui-focused': {
-                    borderColor: '#4F46E5'
+                    borderColor: colors.primary
                   }
                 }
               }}
@@ -1158,7 +1011,7 @@ const LoadManagement = () => {
               opacity: 0,
               ml: 1,
               fontSize: '0.7rem',
-              color: '#6B7280',
+              color: colors.textGray,
               transition: 'opacity 0.2s'
             }}
           >
@@ -1375,9 +1228,7 @@ const LoadManagement = () => {
 
       // Get auth token
       const token = localStorage.getItem('token');
-      console.log('Upload token:', token ? 'exists' : 'missing');
-      console.log('Upload URL:', API_ENDPOINTS.LOAD_UPLOAD(currentPdfManager.loadId));
-      
+
       if (!token) {
         throw new Error('Not authenticated - please log in with admin@absolutetms.com / demo123');
       }
@@ -1391,17 +1242,12 @@ const LoadManagement = () => {
         body: formData,
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Error response:', errorText);
         throw new Error(`Upload failed: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('Upload result:', result);
       const fileInfo = result.data.file;
 
       // Update the load with file info in localStorage
@@ -1437,60 +1283,7 @@ const LoadManagement = () => {
     }
   };
 
-  const states = [
-    { code: 'AL', name: 'Alabama' },
-    { code: 'AK', name: 'Alaska' },
-    { code: 'AZ', name: 'Arizona' },
-    { code: 'AR', name: 'Arkansas' },
-    { code: 'CA', name: 'California' },
-    { code: 'CO', name: 'Colorado' },
-    { code: 'CT', name: 'Connecticut' },
-    { code: 'DE', name: 'Delaware' },
-    { code: 'FL', name: 'Florida' },
-    { code: 'GA', name: 'Georgia' },
-    { code: 'HI', name: 'Hawaii' },
-    { code: 'ID', name: 'Idaho' },
-    { code: 'IL', name: 'Illinois' },
-    { code: 'IN', name: 'Indiana' },
-    { code: 'IA', name: 'Iowa' },
-    { code: 'KS', name: 'Kansas' },
-    { code: 'KY', name: 'Kentucky' },
-    { code: 'LA', name: 'Louisiana' },
-    { code: 'ME', name: 'Maine' },
-    { code: 'MD', name: 'Maryland' },
-    { code: 'MA', name: 'Massachusetts' },
-    { code: 'MI', name: 'Michigan' },
-    { code: 'MN', name: 'Minnesota' },
-    { code: 'MS', name: 'Mississippi' },
-    { code: 'MO', name: 'Missouri' },
-    { code: 'MT', name: 'Montana' },
-    { code: 'NE', name: 'Nebraska' },
-    { code: 'NV', name: 'Nevada' },
-    { code: 'NH', name: 'New Hampshire' },
-    { code: 'NJ', name: 'New Jersey' },
-    { code: 'NM', name: 'New Mexico' },
-    { code: 'NY', name: 'New York' },
-    { code: 'NC', name: 'North Carolina' },
-    { code: 'ND', name: 'North Dakota' },
-    { code: 'OH', name: 'Ohio' },
-    { code: 'OK', name: 'Oklahoma' },
-    { code: 'OR', name: 'Oregon' },
-    { code: 'PA', name: 'Pennsylvania' },
-    { code: 'RI', name: 'Rhode Island' },
-    { code: 'SC', name: 'South Carolina' },
-    { code: 'SD', name: 'South Dakota' },
-    { code: 'TN', name: 'Tennessee' },
-    { code: 'TX', name: 'Texas' },
-    { code: 'UT', name: 'Utah' },
-    { code: 'VT', name: 'Vermont' },
-    { code: 'VA', name: 'Virginia' },
-    { code: 'WA', name: 'Washington' },
-    { code: 'WV', name: 'West Virginia' },
-    { code: 'WI', name: 'Wisconsin' },
-    { code: 'WY', name: 'Wyoming' }
-  ];
-
-  console.log('🚛 LoadManagement component is rendering...');
+  const states = US_STATES;
 
   try {
     return (
@@ -1502,7 +1295,7 @@ const LoadManagement = () => {
             <Typography variant="h4" sx={{ fontWeight: 700, color: '#111827', mb: 1 }}>
               Load Management
             </Typography>
-            <Typography variant="body1" sx={{ color: '#6B7280' }}>
+            <Typography variant="body1" sx={{ color: colors.textGray }}>
               Manage all your transportation loads and shipments
             </Typography>
           </Box>
@@ -1510,9 +1303,8 @@ const LoadManagement = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={() => handleOpenDialog('add')}
-            sx={{ 
-              bgcolor: '#4F46E5',
-              '&:hover': { bgcolor: '#3730A3' }
+            sx={{
+              ...buttonStyles.primary
             }}
           >
             New Load
@@ -1520,8 +1312,8 @@ const LoadManagement = () => {
         </Box>
 
         {/* Filters and Search */}
-        <Card sx={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
-          <CardContent sx={{ p: 3 }}>
+        <Card sx={cardStyles.bordered}>
+          <CardContent sx={cardStyles.content}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={4}>
                 <TextField
@@ -1534,7 +1326,7 @@ const LoadManagement = () => {
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      bgcolor: '#F9FAFB'
+                      ...backgroundStyles.light
                     }
                   }}
                 />
@@ -1545,7 +1337,7 @@ const LoadManagement = () => {
                   <Select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    sx={{ bgcolor: '#F9FAFB' }}
+                    sx={{ ...backgroundStyles.light }}
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="pending">Pending</MenuItem>
@@ -1562,12 +1354,12 @@ const LoadManagement = () => {
                   onClick={() => setShowUpcoming(!showUpcoming)}
                   sx={{
                     height: '56px',
-                    bgcolor: showUpcoming ? '#059669' : 'transparent',
-                    borderColor: showUpcoming ? '#059669' : '#E5E7EB',
+                    bgcolor: showUpcoming ? colors.success : 'transparent',
+                    borderColor: showUpcoming ? colors.success : '#E5E7EB',
                     color: showUpcoming ? 'white' : '#374151',
                     '&:hover': {
-                      bgcolor: showUpcoming ? '#047857' : '#F3F4F6',
-                      borderColor: showUpcoming ? '#047857' : '#D1D5DB',
+                      bgcolor: showUpcoming ? colors.successDark : '#F3F4F6',
+                      borderColor: showUpcoming ? colors.successDark : colors.borderLight,
                     }
                   }}
                 >
@@ -1595,7 +1387,7 @@ const LoadManagement = () => {
                   borderBottom: '2px solid #E1E5E9',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: '#374151',
+                  color: colors.darkTextGray,
                   textTransform: 'uppercase',
                   letterSpacing: '0.025em',
                   py: 2,
@@ -1646,7 +1438,7 @@ const LoadManagement = () => {
                   >
                     {/* Date */}
                     <TableCell>
-                      <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                      <Typography variant="body2" sx={{ color: colors.darkTextGray, fontSize: '0.8125rem' }}>
                         {new Date(load.createdAt).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric'
@@ -1668,7 +1460,7 @@ const LoadManagement = () => {
                             <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                               {load.broker}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                               {getMCNumber(load.broker, 'broker')}
                             </Typography>
                           </>
@@ -1677,7 +1469,7 @@ const LoadManagement = () => {
                             <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                               {load.customer}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                               {getMCNumber(load.customer, 'customer')}
                             </Typography>
                           </>
@@ -1686,7 +1478,7 @@ const LoadManagement = () => {
                     )}
                     {/* Driver */}
                     {renderEditableCell(load, 'driver',
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: colors.darkTextGray }}>
                         {capitalizeWords(load.driver)}
                       </Typography>
                     )}
@@ -1696,7 +1488,7 @@ const LoadManagement = () => {
                         <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                           {load.origin.city}, {load.origin.province}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                        <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                           {new Date(load.pickupDate).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric'
@@ -1711,7 +1503,7 @@ const LoadManagement = () => {
                         <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                           {load.destination.city}, {load.destination.province}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                        <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                           {new Date(load.deliveryDate).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric'
@@ -1738,7 +1530,7 @@ const LoadManagement = () => {
                     )}
                     {/* Rate */}
                     {renderEditableCell(load, 'rate',
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 600, color: colors.success }}>
                         ${load.rate?.toLocaleString() || '0'}
                       </Typography>
                     )}
@@ -1781,8 +1573,8 @@ const LoadManagement = () => {
                               fontSize: '0.75rem',
                               py: 0.5,
                               px: 1,
-                              borderColor: '#D1D5DB',
-                              color: '#6B7280'
+                              borderColor: colors.borderLight,
+                              color: colors.textGray
                             }}
                             onClick={() => handleOpenPdfManager(load.id, 'rateConfirmation', load.loadNumber)}
                           >
@@ -1803,7 +1595,7 @@ const LoadManagement = () => {
                               onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
                               sx={{
                                 bgcolor: '#D1FAE5',
-                                color: '#059669',
+                                color: colors.success,
                                 cursor: 'pointer',
                                 '&:hover': { bgcolor: '#A7F3D0' }
                               }}
@@ -1818,8 +1610,8 @@ const LoadManagement = () => {
                               fontSize: '0.75rem',
                               py: 0.5,
                               px: 1,
-                              borderColor: '#D1D5DB',
-                              color: '#6B7280'
+                              borderColor: colors.borderLight,
+                              color: colors.textGray
                             }}
                             onClick={() => handleOpenPdfManager(load.id, 'proofOfDelivery', load.loadNumber)}
                           >
@@ -1839,7 +1631,7 @@ const LoadManagement = () => {
                           color: '#9CA3AF',
                           p: 0.5,
                           '&:hover': {
-                            color: '#6B7280',
+                            color: colors.textGray,
                             bgcolor: 'rgba(107, 114, 128, 0.1)'
                           }
                         }}
@@ -1891,7 +1683,7 @@ const LoadManagement = () => {
                       >
                         {/* Date */}
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                          <Typography variant="body2" sx={{ color: colors.darkTextGray, fontSize: '0.8125rem' }}>
                             {new Date(load.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric'
@@ -1918,7 +1710,7 @@ const LoadManagement = () => {
                             <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                               {load.origin.city}, {load.origin.province}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                               {new Date(load.pickupDate).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
@@ -1933,12 +1725,12 @@ const LoadManagement = () => {
                             <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', fontSize: '0.8125rem' }}>
                               {load.destination.city}, {load.destination.province}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.75rem' }}>
+                            <Typography variant="caption" sx={{ color: colors.textGray, fontSize: '0.75rem' }}>
                               {new Date(load.deliveryDate).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
                               })}
-                              {load.deliveryTime && <span style={{ marginLeft: '4px', fontWeight: 'bold', color: '#059669' }}>{load.deliveryTime}</span>}
+                              {load.deliveryTime && <span style={{ marginLeft: '4px', fontWeight: 'bold', color: colors.success }}>{load.deliveryTime}</span>}
                             </Typography>
                           </Box>
                         )}
@@ -1960,13 +1752,13 @@ const LoadManagement = () => {
                         )}
                         {/* Driver */}
                         {renderEditableCell(load, 'driver',
-                          <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.8125rem' }}>
+                          <Typography variant="body2" sx={{ color: colors.darkTextGray, fontSize: '0.8125rem' }}>
                             {load.driver}
                           </Typography>
                         )}
                         {/* Rate */}
                         {renderEditableCell(load, 'rate',
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#059669', fontSize: '0.8125rem' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: colors.success, fontSize: '0.8125rem' }}>
                             ${load.rate ? load.rate.toLocaleString() : '0'}
                           </Typography>
                         )}
@@ -2004,8 +1796,8 @@ const LoadManagement = () => {
 
         {filteredLoads.length === 0 && (
           <Box sx={{ p: 8, textAlign: 'center', bgcolor: '#FAFBFC' }}>
-            <LocalShipping sx={{ fontSize: 56, color: '#D1D5DB', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#6B7280', mb: 1, fontSize: '1.125rem' }}>
+            <LocalShipping sx={{ fontSize: 56, color: colors.borderLight, mb: 2 }} />
+            <Typography variant="h6" sx={{ color: colors.textGray, mb: 1, fontSize: '1.125rem' }}>
               No loads found
             </Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
@@ -2027,7 +1819,7 @@ const LoadManagement = () => {
       >
         <ClickAwayListener onClickAway={handleCellCancel}>
           <Paper sx={{
-            border: '2px solid #4F46E5',
+            border: borderStyles.primary,
             borderRadius: 1,
             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06)',
             minWidth: 200,
@@ -2091,7 +1883,7 @@ const LoadManagement = () => {
                       sx={{
                         fontSize: '0.75rem',
                         fontWeight: 500,
-                        color: '#374151',
+                        color: colors.darkTextGray,
                         mr: 2
                       }}
                     >
@@ -2121,7 +1913,7 @@ const LoadManagement = () => {
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {customer.company}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                    <Typography variant="caption" sx={{ color: colors.textGray }}>
                       {customer.contactPerson}
                     </Typography>
                   </Box>
@@ -2181,8 +1973,8 @@ const LoadManagement = () => {
       >
         <DialogTitle sx={{ 
           pb: 2, 
-          borderBottom: '1px solid #E5E7EB',
-          background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+          borderBottom: borderStyles.light,
+          ...backgroundStyles.primaryGradient,
           color: 'white'
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2214,12 +2006,12 @@ const LoadManagement = () => {
                     width: 24, 
                     height: 24, 
                     borderRadius: 1, 
-                    bgcolor: '#EEF2FF', 
+                    bgcolor: colors.selectionLight, 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center'
                   }}>
-                    <Receipt sx={{ color: '#4F46E5', fontSize: 14 }} />
+                    <Receipt sx={{ color: colors.primary, fontSize: 14 }} />
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={5.75}>
@@ -2231,10 +2023,10 @@ const LoadManagement = () => {
                     disabled={dialogMode === 'view'}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#4F46E5'
+                          borderColor: colors.primary
                         }
                       }
                     }}
@@ -2266,10 +2058,10 @@ const LoadManagement = () => {
                         placeholder="Type or select a customer..."
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                            ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                             height: '56px',
                             '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#4F46E5'
+                              borderColor: colors.primary
                             }
                           }
                         }}
@@ -2281,7 +2073,7 @@ const LoadManagement = () => {
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {option.company}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          <Typography variant="caption" sx={{ color: colors.textGray }}>
                             Contact: {option.contactPerson}
                           </Typography>
                         </Box>
@@ -2316,10 +2108,10 @@ const LoadManagement = () => {
                         placeholder="Type or select a broker..."
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                            ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                             height: '56px',
                             '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#4F46E5'
+                              borderColor: colors.primary
                             }
                           }
                         }}
@@ -2331,7 +2123,7 @@ const LoadManagement = () => {
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {option.company}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                          <Typography variant="caption" sx={{ color: colors.textGray }}>
                             Contact: {option.contactPerson}
                           </Typography>
                         </Box>
@@ -2369,7 +2161,7 @@ const LoadManagement = () => {
                     InputLabelProps={{ shrink: true }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#2563EB'
@@ -2389,7 +2181,7 @@ const LoadManagement = () => {
                     InputLabelProps={{ shrink: true }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#2563EB'
@@ -2409,7 +2201,7 @@ const LoadManagement = () => {
                     InputLabelProps={{ shrink: true }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#2563EB'
@@ -2429,7 +2221,7 @@ const LoadManagement = () => {
                     InputLabelProps={{ shrink: true }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#2563EB'
@@ -2449,12 +2241,12 @@ const LoadManagement = () => {
                     width: 24, 
                     height: 24, 
                     borderRadius: 1, 
-                    bgcolor: '#F0FDF4', 
+                    bgcolor: colors.successLight, 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center'
                   }}>
-                    <LocationOn sx={{ color: '#059669', fontSize: 14 }} />
+                    <LocationOn sx={{ color: colors.success, fontSize: 14 }} />
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={5.75}>
@@ -2466,10 +2258,10 @@ const LoadManagement = () => {
                     disabled={dialogMode === 'view'}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#059669'
+                          borderColor: colors.success
                         }
                       }
                     }}
@@ -2492,10 +2284,10 @@ const LoadManagement = () => {
                         placeholder="State"
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                            ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                             height: '56px',
                             '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#059669'
+                              borderColor: colors.success
                             }
                           }
                         }}
@@ -2507,7 +2299,7 @@ const LoadManagement = () => {
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
                             {option.code}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                          <Typography variant="body2" sx={{ color: colors.textGray }}>
                             {option.name}
                           </Typography>
                         </Box>
@@ -2543,7 +2335,7 @@ const LoadManagement = () => {
                     disabled={dialogMode === 'view'}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#D97706'
@@ -2569,7 +2361,7 @@ const LoadManagement = () => {
                         placeholder="State"
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                            ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                             height: '56px',
                             '&:hover .MuiOutlinedInput-notchedOutline': {
                               borderColor: '#D97706'
@@ -2584,7 +2376,7 @@ const LoadManagement = () => {
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
                             {option.code}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                          <Typography variant="body2" sx={{ color: colors.textGray }}>
                             {option.name}
                           </Typography>
                         </Box>
@@ -2628,7 +2420,7 @@ const LoadManagement = () => {
                         placeholder="Driver"
                         sx={{
                           '& .MuiOutlinedInput-root': {
-                            bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                            ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                             height: '56px',
                             '&:hover .MuiOutlinedInput-notchedOutline': {
                               borderColor: '#2563EB'
@@ -2645,7 +2437,7 @@ const LoadManagement = () => {
                             sx={{
                               fontSize: '0.75rem',
                               fontWeight: 500,
-                              color: '#374151',
+                              color: colors.darkTextGray,
                               mr: 2
                             }}
                           >
@@ -2658,7 +2450,7 @@ const LoadManagement = () => {
                               sx={{
                                 ml: 1,
                                 bgcolor: option.status === 'active' || option.status === 'available' ? '#D1FAE5' : '#FEE2E2',
-                                color: option.status === 'active' || option.status === 'available' ? '#059669' : '#DC2626',
+                                color: option.status === 'active' || option.status === 'available' ? colors.success : '#DC2626',
                                 fontSize: '0.75rem',
                                 height: '24px'
                               }}
@@ -2679,11 +2471,11 @@ const LoadManagement = () => {
                     onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
                     disabled={dialogMode === 'view'}
                     InputProps={{
-                      startAdornment: <AttachMoney sx={{ color: '#6B7280', mr: 0.5, fontSize: 18 }} />
+                      startAdornment: <AttachMoney sx={{ color: colors.textGray, mr: 0.5, fontSize: 18 }} />
                     }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#10B981'
@@ -2709,7 +2501,7 @@ const LoadManagement = () => {
                         }
                       }}
                       sx={{
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         height: '56px',
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#10B981'
@@ -2730,7 +2522,7 @@ const LoadManagement = () => {
                       </MenuItem>
                       <MenuItem value="delivered" sx={{ minHeight: 50, fontSize: '1rem' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CheckCircle sx={{ mr: 2, fontSize: 18, color: '#059669' }} />
+                          <CheckCircle sx={{ mr: 2, fontSize: 18, color: colors.success }} />
                           Delivered
                         </Box>
                       </MenuItem>
@@ -2761,7 +2553,7 @@ const LoadManagement = () => {
                     disabled={dialogMode === 'view'}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        bgcolor: dialogMode === 'view' ? '#F9FAFB' : 'white',
+                        ...backgroundStyles.conditional(dialogMode === 'view', colors.lightGray, colors.white),
                         '&:hover .MuiOutlinedInput-notchedOutline': {
                           borderColor: '#10B981'
                         }
@@ -2776,8 +2568,8 @@ const LoadManagement = () => {
         {dialogMode !== 'view' && (
           <DialogActions sx={{ 
             p: 4, 
-            borderTop: '1px solid #E5E7EB',
-            bgcolor: '#F9FAFB',
+            borderTop: borderStyles.light,
+            ...backgroundStyles.light,
             display: 'flex',
             gap: 2
           }}>
@@ -2785,11 +2577,11 @@ const LoadManagement = () => {
               onClick={handleCloseDialog} 
               variant="outlined"
               sx={{ 
-                color: '#6B7280',
-                borderColor: '#D1D5DB',
+                color: colors.textGray,
+                borderColor: colors.borderLight,
                 '&:hover': { 
                   borderColor: '#9CA3AF',
-                  bgcolor: '#F3F4F6'
+                  ...backgroundStyles.medium
                 },
                 px: 3,
                 py: 1
@@ -2801,9 +2593,8 @@ const LoadManagement = () => {
               variant="contained"
               onClick={handleSaveLoad}
               startIcon={dialogMode === 'add' ? <Add /> : <Edit />}
-              sx={{ 
-                bgcolor: '#4F46E5', 
-                '&:hover': { bgcolor: '#3730A3' },
+              sx={{
+                ...buttonStyles.primary,
                 px: 4,
                 py: 1,
                 boxShadow: '0 4px 6px -1px rgb(79 70 229 / 0.3)'
@@ -2829,7 +2620,7 @@ const LoadManagement = () => {
       >
         <DialogTitle sx={{ 
           pb: 2, 
-          borderBottom: '1px solid #E5E7EB',
+          borderBottom: borderStyles.light,
           background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
           color: 'white'
         }}>
@@ -2869,14 +2660,12 @@ const LoadManagement = () => {
                   width: '100%',
                   borderStyle: 'dashed',
                   borderWidth: 2,
-                  borderColor: selectedFile ? '#059669' : '#D1D5DB',
-                  bgcolor: selectedFile ? '#F0FDF4' : '#F9FAFB',
-                  color: selectedFile ? '#059669' : '#6B7280',
+                  ...backgroundStyles.selectedFileWithBorder(selectedFile),
                   flexDirection: 'column',
                   gap: 1,
                   '&:hover': {
-                    borderColor: '#059669',
-                    bgcolor: '#F0FDF4'
+                    borderColor: colors.success,
+                    bgcolor: colors.successLight
                   }
                 }}
               >
@@ -2891,14 +2680,14 @@ const LoadManagement = () => {
             </label>
             
             {selectedFile && (
-              <Box sx={{ mt: 3, p: 2, bgcolor: '#F0FDF4', borderRadius: 2, border: '1px solid #D1FAE5' }}>
+              <Box sx={{ mt: 3, p: 2, bgcolor: colors.successLight, borderRadius: 2, border: '1px solid #D1FAE5' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  <PictureAsPdf sx={{ color: '#059669', fontSize: 24 }} />
+                  <PictureAsPdf sx={{ color: colors.success, fontSize: 24 }} />
                   <Box sx={{ textAlign: 'left' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#059669' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: colors.success }}>
                       {selectedFile.name}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                    <Typography variant="caption" sx={{ color: colors.textGray }}>
                       Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </Typography>
                   </Box>
@@ -2909,8 +2698,8 @@ const LoadManagement = () => {
         </DialogContent>
         <DialogActions sx={{ 
           p: 4, 
-          borderTop: '1px solid #E5E7EB',
-          bgcolor: '#F9FAFB',
+          borderTop: borderStyles.light,
+          ...backgroundStyles.light,
           display: 'flex',
           gap: 2
         }}>
@@ -2918,11 +2707,11 @@ const LoadManagement = () => {
             onClick={handleCloseUploadDialog} 
             variant="outlined"
             sx={{ 
-              color: '#6B7280',
-              borderColor: '#D1D5DB',
+              color: colors.textGray,
+              borderColor: colors.borderLight,
               '&:hover': { 
                 borderColor: '#9CA3AF',
-                bgcolor: '#F3F4F6'
+                ...backgroundStyles.medium
               },
               px: 3,
               py: 1
@@ -2936,9 +2725,9 @@ const LoadManagement = () => {
             disabled={!selectedFile || loading}
             startIcon={<CloudUpload />}
             sx={{ 
-              bgcolor: '#059669', 
-              '&:hover': { bgcolor: '#047857' },
-              '&:disabled': { bgcolor: '#D1D5DB' },
+              bgcolor: colors.success, 
+              '&:hover': { bgcolor: colors.successDark },
+              '&:disabled': { bgcolor: colors.borderLight },
               px: 4,
               py: 1,
               boxShadow: '0 4px 6px -1px rgb(5 150 105 / 0.3)'
@@ -2965,7 +2754,7 @@ const LoadManagement = () => {
       >
         <DialogTitle sx={{ 
           pb: 2, 
-          borderBottom: '1px solid #E5E7EB',
+          borderBottom: borderStyles.light,
           background: 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
           color: 'white'
         }}>
@@ -3014,10 +2803,10 @@ const LoadManagement = () => {
               <Box sx={{ 
                 p: 3, 
                 textAlign: 'center',
-                borderTop: '1px solid #E5E7EB',
-                bgcolor: '#F9FAFB'
+                borderTop: borderStyles.light,
+                ...backgroundStyles.light
               }}>
-                <Typography variant="body2" sx={{ color: '#6B7280', mb: 2 }}>
+                <Typography variant="body2" sx={{ color: colors.textGray, mb: 2 }}>
                   Can't view the PDF? Try opening it directly:
                 </Typography>
                 <Button
@@ -3041,8 +2830,8 @@ const LoadManagement = () => {
         </DialogContent>
         <DialogActions sx={{ 
           p: 2, 
-          borderTop: '1px solid #E5E7EB',
-          bgcolor: '#F9FAFB',
+          borderTop: borderStyles.light,
+          ...backgroundStyles.light,
           display: 'flex',
           justifyContent: 'space-between'
         }}>
@@ -3058,22 +2847,21 @@ const LoadManagement = () => {
               document.body.removeChild(link);
             }}
             sx={{
-              borderColor: '#059669',
-              color: '#059669',
+              borderColor: colors.success,
+              color: colors.success,
               '&:hover': {
-                borderColor: '#047857',
-                bgcolor: '#F0FDF4'
+                borderColor: colors.successDark,
+                bgcolor: colors.successLight
               }
             }}
           >
             Download PDF
           </Button>
-          <Button 
-            onClick={handleClosePdfViewer} 
+          <Button
+            onClick={handleClosePdfViewer}
             variant="contained"
-            sx={{ 
-              bgcolor: '#6B7280',
-              '&:hover': { bgcolor: '#4B5563' }
+            sx={{
+              ...buttonStyles.secondary
             }}
           >
             Close
@@ -3096,8 +2884,8 @@ const LoadManagement = () => {
       >
         <DialogTitle sx={{ 
           pb: 2, 
-          borderBottom: '1px solid #E5E7EB',
-          background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+          borderBottom: borderStyles.light,
+          ...backgroundStyles.primaryGradient,
           color: 'white'
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3127,16 +2915,16 @@ const LoadManagement = () => {
             {loads.find(l => l.id === currentPdfManager.loadId)?.[currentPdfManager.type]?.length > 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {loads.find(l => l.id === currentPdfManager.loadId)?.[currentPdfManager.type]?.map((pdf) => (
-                  <Card key={pdf._id} sx={{ border: '1px solid #E5E7EB' }}>
-                    <CardContent sx={{ p: 3 }}>
+                  <Card key={pdf._id} sx={{ border: borderStyles.light }}>
+                    <CardContent sx={cardStyles.content}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <PictureAsPdf sx={{ color: '#4F46E5', fontSize: 24 }} />
+                          <PictureAsPdf sx={{ color: colors.primary, fontSize: 24 }} />
                           <Box>
                             <Typography variant="body1" sx={{ fontWeight: 600, color: '#111827' }}>
                               {pdf.filename}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                            <Typography variant="caption" sx={{ color: colors.textGray }}>
                               Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()} • 
                               Size: {(pdf.size / 1024 / 1024).toFixed(2)} MB
                             </Typography>
@@ -3149,11 +2937,11 @@ const LoadManagement = () => {
                             startIcon={<PictureAsPdf />}
                             onClick={() => handleViewPdf(pdf.filename, currentPdfManager.type, currentPdfManager.loadNumber)}
                             sx={{
-                              borderColor: '#4F46E5',
-                              color: '#4F46E5',
+                              borderColor: colors.primary,
+                              color: colors.primary,
                               '&:hover': {
-                                borderColor: '#3730A3',
-                                bgcolor: '#EEF2FF'
+                                borderColor: colors.primaryHover,
+                                bgcolor: colors.selectionLight
                               }
                             }}
                           >
@@ -3186,12 +2974,12 @@ const LoadManagement = () => {
               <Box sx={{ 
                 p: 4, 
                 textAlign: 'center',
-                bgcolor: '#F9FAFB',
+                ...backgroundStyles.light,
                 borderRadius: 2,
                 border: '2px dashed #D1D5DB'
               }}>
-                <PictureAsPdf sx={{ fontSize: 48, color: '#D1D5DB', mb: 2 }} />
-                <Typography variant="body1" sx={{ color: '#6B7280', mb: 1 }}>
+                <PictureAsPdf sx={{ fontSize: 48, color: colors.borderLight, mb: 2 }} />
+                <Typography variant="body1" sx={{ color: colors.textGray, mb: 1 }}>
                   No {currentPdfManager.type === 'proofOfDelivery' ? 'proof of delivery' : 'rate confirmation'} files yet
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
@@ -3224,14 +3012,12 @@ const LoadManagement = () => {
                     width: '100%',
                     borderStyle: 'dashed',
                     borderWidth: 2,
-                    borderColor: selectedFile ? '#4F46E5' : '#D1D5DB',
-                    bgcolor: selectedFile ? '#EEF2FF' : '#F9FAFB',
-                    color: selectedFile ? '#4F46E5' : '#6B7280',
+                    ...backgroundStyles.selectedFileWithPrimaryBorder(selectedFile),
                     flexDirection: 'column',
                     gap: 1,
                     '&:hover': {
-                      borderColor: '#4F46E5',
-                      bgcolor: '#EEF2FF'
+                      borderColor: colors.primary,
+                      bgcolor: colors.selectionLight
                     }
                   }}
                 >
@@ -3252,9 +3038,8 @@ const LoadManagement = () => {
                     onClick={handleUploadPdfFromManager}
                     disabled={loading}
                     startIcon={<CloudUpload />}
-                    sx={{ 
-                      bgcolor: '#4F46E5', 
-                      '&:hover': { bgcolor: '#3730A3' }
+                    sx={{
+                      ...buttonStyles.primary
                     }}
                   >
                     {loading ? 'Uploading...' : 'Upload PDF'}
@@ -3264,7 +3049,7 @@ const LoadManagement = () => {
                     onClick={() => setSelectedFile(null)}
                     sx={{
                       borderColor: '#6B7280',
-                      color: '#6B7280'
+                      color: colors.textGray
                     }}
                   >
                     Cancel
@@ -3274,17 +3059,12 @@ const LoadManagement = () => {
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ 
-          p: 3, 
-          borderTop: '1px solid #E5E7EB',
-          bgcolor: '#F9FAFB'
-        }}>
-          <Button 
-            onClick={handleClosePdfManager} 
+        <DialogActions sx={dialogStyles.actions}>
+          <Button
+            onClick={handleClosePdfManager}
             variant="contained"
-            sx={{ 
-              bgcolor: '#6B7280',
-              '&:hover': { bgcolor: '#4B5563' }
+            sx={{
+              ...buttonStyles.secondary
             }}
           >
             Close

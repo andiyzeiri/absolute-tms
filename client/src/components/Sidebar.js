@@ -186,8 +186,8 @@ const Sidebar = ({ currentPage, onPageChange, user }) => {
         </Box>
 
         {/* User Profile */}
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           alignItems: 'center',
           bgcolor: '#F9FAFB',
           borderRadius: '12px',
@@ -197,7 +197,9 @@ const Sidebar = ({ currentPage, onPageChange, user }) => {
           '&:hover': {
             bgcolor: '#F3F4F6'
           }
-        }}>
+        }}
+        onClick={() => user?.role === 'admin' && onPageChange('team-management')}
+        >
           <Avatar sx={{ 
             width: 36, 
             height: 36, 

@@ -25,6 +25,12 @@ export const API_ENDPOINTS = {
   
   // Dashboard endpoints
   DASHBOARD_STATS: `${API_BASE_URL}/api/dashboard/stats`,
+
+  // User/Team management endpoints
+  TEAM_MEMBERS: `${API_BASE_URL}/api/users`,
+  CREATE_TEAM_MEMBER: `${API_BASE_URL}/api/users/create`,
+  UPDATE_TEAM_MEMBER: (userId) => `${API_BASE_URL}/api/users/${userId}`,
+  DELETE_TEAM_MEMBER: (userId) => `${API_BASE_URL}/api/users/${userId}`,
 };
 
 // Axios default configuration

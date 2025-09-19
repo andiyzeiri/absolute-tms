@@ -30,6 +30,75 @@ class UserController {
     }
   }
 
+  // Admin creates new user with password for their company
+  static async createUser(req, res) {
+    try {
+      const { firstName, lastName, email, password, role, phone } = req.body;
+      const adminUser = req.user;
+
+      // Only admins can create users
+      if (adminUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can create users'
+        });
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'User already exists with this email'
+        });
+      }
+
+      // Get company for name
+      const company = await Company.findById(adminUser.company);
+      if (!company) {
+        return res.status(400).json({
+          success: false,
+          message: 'Company not found'
+        });
+      }
+
+      // Create new user
+      const newUser = new User({
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        password, // Password will be hashed by the pre-save middleware
+        role,
+        phone,
+        company: adminUser.company,
+        companyName: company.name,
+        isActive: true,
+        emailVerified: true // Auto-verify since admin is creating
+      });
+
+      await newUser.save();
+
+      // Remove password from response
+      const userResponse = newUser.toObject();
+      delete userResponse.password;
+
+      res.status(201).json({
+        success: true,
+        message: 'Team member created successfully',
+        data: {
+          user: userResponse
+        }
+      });
+
+    } catch (error) {
+      console.error('Create user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create team member'
+      });
+    }
+  }
+
   // Admin invites/creates new user for their company
   static async inviteUser(req, res) {
     try {
