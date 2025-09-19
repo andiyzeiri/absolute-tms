@@ -1,6 +1,6 @@
 [build]
-  publish = "public"
-  command = "cd client && npm install && npm run build && cd .. && cp -r client/build/* public/"
+  publish = "client/build"
+  command = "cd client && npm install && npm run build"
 
 [[redirects]]
   from = "/*"
@@ -10,4 +10,5 @@
 [build.environment]
   REACT_APP_API_URL = "https://35izoi3ebh.execute-api.us-east-1.amazonaws.com/prod"
   CI = "false"
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.x"
+  NPM_VERSION = "10.x"
