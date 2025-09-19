@@ -81,8 +81,16 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+// Body parsing middleware - Enhanced for Lambda
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf, encoding) => {
+    // Store raw body for debugging in Lambda environment
+    if (process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR) {
+      req.rawBody = buf;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compression

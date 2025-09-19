@@ -376,13 +376,59 @@ router.get('/stats/dashboard', async (req, res) => {
   }
 });
 
+// Test endpoint to debug JSON parsing in Lambda
+router.post('/test-upload', async (req, res) => {
+  try {
+    console.log('Test upload - Raw request info:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      bodyType: typeof req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : [],
+      bodyStringified: JSON.stringify(req.body).substring(0, 500) + '...'
+    });
+
+    res.json({
+      success: true,
+      received: {
+        bodyType: typeof req.body,
+        bodyKeys: req.body ? Object.keys(req.body) : [],
+        hasFileData: !!(req.body && req.body.fileData),
+        hasFileName: !!(req.body && req.body.fileName),
+        fileDataLength: req.body && req.body.fileData ? req.body.fileData.length : 0
+      }
+    });
+  } catch (error) {
+    console.error('Test upload error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Upload file for load (proof of delivery or rate confirmation) - Lambda compatible
 router.post('/:id/upload', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Debug logging
+    console.log('Upload request received:', {
+      params: req.params,
+      bodyKeys: Object.keys(req.body),
+      bodyType: typeof req.body,
+      contentType: req.headers['content-type'],
+      bodySize: JSON.stringify(req.body).length,
+      hasRawBody: !!req.rawBody,
+      rawBodySize: req.rawBody ? req.rawBody.length : 0
+    });
+
     const { type, fileData, fileName, fileSize } = req.body;
 
     if (!fileData || !fileName) {
+      console.log('Missing data:', {
+        hasFileData: !!fileData,
+        hasFileName: !!fileName,
+        type,
+        bodyContent: req.body
+      });
       return res.status(400).json({
         success: false,
         message: 'No file data or filename provided'
@@ -400,15 +446,29 @@ router.post('/:id/upload', async (req, res) => {
     const isLambda = process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR;
 
     if (isLambda) {
-      // Lambda environment - store in S3 (placeholder for now)
+      // Lambda environment - simplified file handling due to API Gateway limits
       const uniqueFilename = `${Date.now()}-${fileName}`;
+
+      // For now, store file metadata only - file content handling needs different approach
       const fileInfo = {
         filename: uniqueFilename,
+        originalName: fileName,
         path: `/uploads/${uniqueFilename}`,
         uploadedAt: new Date(),
-        size: fileSize || fileData.length,
-        _id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+        size: fileSize || (fileData ? fileData.length : 0),
+        _id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        // Mark as Lambda upload - different handling needed
+        lambdaUpload: true,
+        // Store file data temporarily (will need proper S3 implementation)
+        fileDataPreview: fileData ? fileData.substring(0, 100) + '...' : 'no data'
       };
+
+      console.log('Processing Lambda file upload:', {
+        fileName,
+        fileSize,
+        fileDataLength: fileData ? fileData.length : 0,
+        type
+      });
 
       // Try to find the load in database and update
       try {
@@ -422,6 +482,10 @@ router.post('/:id/upload', async (req, res) => {
           }
           load[type].push(fileInfo);
           await load.save();
+
+          console.log('Successfully saved file metadata to database');
+        } else {
+          console.log('Load not found in database');
         }
       } catch (dbError) {
         console.log('Database operation failed:', dbError.message);
@@ -429,7 +493,7 @@ router.post('/:id/upload', async (req, res) => {
 
       res.json({
         success: true,
-        message: `${type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully`,
+        message: `${type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully (Lambda mode)`,
         data: {
           loadId: id,
           file: fileInfo

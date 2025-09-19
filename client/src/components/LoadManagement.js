@@ -1154,6 +1154,12 @@ const LoadManagement = () => {
     try {
       setLoading(true);
 
+      // Check file size (AWS API Gateway has 6MB limit, base64 increases size by ~33%)
+      const maxFileSize = 4.5 * 1024 * 1024; // 4.5MB to account for base64 encoding
+      if (selectedFile.size > maxFileSize) {
+        throw new Error(`File too large. Maximum size is ${Math.round(maxFileSize / 1024 / 1024)}MB`);
+      }
+
       // Get auth token
       const token = localStorage.getItem('token');
 
@@ -1166,6 +1172,17 @@ const LoadManagement = () => {
         };
         reader.onerror = reject;
         reader.readAsDataURL(selectedFile);
+      });
+
+      console.log('Upload data sizes:', {
+        originalFileSize: selectedFile.size,
+        base64Length: fileBase64.length,
+        estimatedPayloadSize: JSON.stringify({
+          type: currentUpload.type,
+          fileData: fileBase64,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size
+        }).length
       });
 
       const uploadData = {
