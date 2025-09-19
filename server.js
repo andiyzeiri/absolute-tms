@@ -89,7 +89,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 // CORS - More permissive configuration for development
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',');
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,https://overdrivetms.com').split(',');
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)

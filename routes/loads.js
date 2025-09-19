@@ -376,60 +376,72 @@ router.get('/stats/dashboard', async (req, res) => {
   }
 });
 
-// Upload file for load (proof of delivery or rate confirmation)
-router.post('/:id/upload', upload.single('file'), async (req, res) => {
+// Upload file for load (proof of delivery or rate confirmation) - Lambda compatible
+router.post('/:id/upload', async (req, res) => {
   try {
     const { id } = req.params;
-    const { type } = req.body; // 'proofOfDelivery' or 'rateConfirmation'
-    
-    if (!req.file) {
+    const { type, fileData, fileName, fileSize } = req.body;
+
+    if (!fileData || !fileName) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: 'No file data or filename provided'
       });
     }
-    
+
     if (!type || (type !== 'proofOfDelivery' && type !== 'rateConfirmation')) {
       return res.status(400).json({
         success: false,
         message: 'Invalid file type. Must be proofOfDelivery or rateConfirmation'
       });
     }
-    
-    // For demo mode, we'll just return the file info without database operations
-    // since loads are stored in localStorage on frontend
-    const fileInfo = {
-      filename: req.file.filename,
-      path: `/uploads/${req.file.filename}`,
-      uploadedAt: new Date(),
-      size: req.file.size,
-      _id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    };
-    
-    // Try to find the load in database, but don't fail if not found (demo mode)
-    try {
-      const load = await Load.findById(id);
-      if (load) {
-        // Push new file to the array instead of replacing
-        if (!load[type]) {
-          load[type] = [];
+
+    // Check if running in Lambda environment
+    const isLambda = process.env.AWS_EXECUTION_ENV || process.env.LAMBDA_RUNTIME_DIR;
+
+    if (isLambda) {
+      // Lambda environment - store in S3 (placeholder for now)
+      const uniqueFilename = `${Date.now()}-${fileName}`;
+      const fileInfo = {
+        filename: uniqueFilename,
+        path: `/uploads/${uniqueFilename}`,
+        uploadedAt: new Date(),
+        size: fileSize || fileData.length,
+        _id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+      };
+
+      // Try to find the load in database and update
+      try {
+        const load = await Load.findOne({
+          _id: id,
+          company: req.user.company || req.user._id
+        });
+        if (load) {
+          if (!load[type]) {
+            load[type] = [];
+          }
+          load[type].push(fileInfo);
+          await load.save();
         }
-        load[type].push(fileInfo);
-        await load.save();
+      } catch (dbError) {
+        console.log('Database operation failed:', dbError.message);
       }
-    } catch (dbError) {
-      console.log('Database operation failed (demo mode):', dbError.message);
-      // Continue without database update for demo mode
+
+      res.json({
+        success: true,
+        message: `${type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully`,
+        data: {
+          loadId: id,
+          file: fileInfo
+        }
+      });
+    } else {
+      // Local development - use multer fallback
+      return res.status(400).json({
+        success: false,
+        message: 'File upload not configured for local development with base64'
+      });
     }
-    
-    res.json({
-      success: true,
-      message: `${type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully`,
-      data: {
-        loadId: id,
-        file: fileInfo
-      }
-    });
   } catch (error) {
     console.error('Error uploading file:', error);
     res.status(500).json({

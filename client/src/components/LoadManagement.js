@@ -1153,20 +1153,36 @@ const LoadManagement = () => {
 
     try {
       setLoading(true);
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('type', currentUpload.type);
 
       // Get auth token
       const token = localStorage.getItem('token');
-      
+
+      // Convert file to base64 for Lambda compatibility
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1]; // Remove data:application/pdf;base64, prefix
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+      const uploadData = {
+        type: currentUpload.type,
+        fileData: fileBase64,
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size
+      };
+
       // Make actual API call to upload the file
       const response = await fetch(API_ENDPOINTS.LOAD_UPLOAD(currentUpload.loadId), {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
-        body: formData,
+        body: JSON.stringify(uploadData),
       });
 
       if (!response.ok) {
@@ -1178,13 +1194,13 @@ const LoadManagement = () => {
 
       // Reload loads to get updated data from API
       await loadLoads();
-      
-      setSnackbar({ 
-        open: true, 
-        message: `${currentUpload.type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully!`, 
-        severity: 'success' 
+
+      setSnackbar({
+        open: true,
+        message: `${currentUpload.type === 'proofOfDelivery' ? 'Proof of Delivery' : 'Rate Confirmation'} uploaded successfully!`,
+        severity: 'success'
       });
-      
+
       handleCloseUploadDialog();
     } catch (error) {
       console.error('Error uploading file:', error);
