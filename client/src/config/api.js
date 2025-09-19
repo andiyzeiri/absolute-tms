@@ -31,6 +31,18 @@ export const API_ENDPOINTS = {
   CREATE_TEAM_MEMBER: `${API_BASE_URL}/api/users/create`,
   UPDATE_TEAM_MEMBER: (userId) => `${API_BASE_URL}/api/users/${userId}`,
   DELETE_TEAM_MEMBER: (userId) => `${API_BASE_URL}/api/users/${userId}`,
+
+  // Customer management endpoints
+  CUSTOMERS: `${API_BASE_URL}/api/customers`,
+  CREATE_CUSTOMER: `${API_BASE_URL}/api/customers`,
+  UPDATE_CUSTOMER: (customerId) => `${API_BASE_URL}/api/customers/${customerId}`,
+  DELETE_CUSTOMER: (customerId) => `${API_BASE_URL}/api/customers/${customerId}`,
+
+  // Broker management endpoints
+  BROKERS: `${API_BASE_URL}/api/brokers`,
+  CREATE_BROKER: `${API_BASE_URL}/api/brokers`,
+  UPDATE_BROKER: (brokerId) => `${API_BASE_URL}/api/brokers/${brokerId}`,
+  DELETE_BROKER: (brokerId) => `${API_BASE_URL}/api/brokers/${brokerId}`,
 };
 
 // Axios default configuration

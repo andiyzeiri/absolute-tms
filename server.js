@@ -164,6 +164,14 @@ app.use('/api/maps', mapsRoutes);
 const gmailRoutes = require('./routes/gmail');
 app.use('/api/gmail', gmailRoutes);
 
+// Customer routes (for customer management)
+const customerRoutes = require('./routes/customers');
+app.use('/api/customers', customerRoutes);
+
+// Broker routes (for broker management)
+const brokerRoutes = require('./routes/brokers');
+app.use('/api/brokers', brokerRoutes);
+
 // Dashboard stats endpoint (fallback to demo data)
 app.get('/api/dashboard/stats', (req, res) => {
   res.json(demoStats);

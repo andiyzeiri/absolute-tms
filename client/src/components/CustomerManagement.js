@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_ENDPOINTS } from '../config/api';
 import {
   Box,
   Card,
@@ -49,7 +51,7 @@ import {
 
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState([]);
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
@@ -172,27 +174,35 @@ const CustomerManagement = () => {
     motorCarrier: ''
   });
 
-  // Load customers from localStorage and calculate totals from load data
-  const loadCustomersFromStorage = () => {
-    const savedCustomers = localStorage.getItem('tms_customers');
-    const savedLoads = localStorage.getItem('tms_loads');
-    
-    let customersData;
-    if (savedCustomers) {
-      customersData = JSON.parse(savedCustomers);
-    } else {
-      // Initialize with demo data if no saved customers exist
-      customersData = demoCustomers;
-      localStorage.setItem('tms_customers', JSON.stringify(demoCustomers));
-    }
+  // Load customers from API
+  const loadCustomers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API_ENDPOINTS.CUSTOMERS, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-    // Calculate totals from load data
-    if (savedLoads) {
-      const loadsData = JSON.parse(savedLoads);
-      customersData = calculateCustomerTotalsFromLoads(customersData, loadsData);
+      if (response.data.success) {
+        setCustomers(response.data.data);
+      } else {
+        // Fallback to demo data if API call fails
+        setCustomers(demoCustomers);
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      // Fallback to demo data on error
+      setCustomers(demoCustomers);
+      setSnackbar({
+        open: true,
+        message: 'Failed to load customers from server, using demo data',
+        severity: 'warning'
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setCustomers(customersData);
   };
 
   // Calculate customer totals based on actual load data
@@ -227,15 +237,15 @@ const CustomerManagement = () => {
   };
 
   useEffect(() => {
-    loadCustomersFromStorage();
+    loadCustomers();
     
     // Listen for customer updates and load updates
     const handleCustomersUpdate = () => {
-      loadCustomersFromStorage();
+      loadCustomers();
     };
 
     const handleLoadsUpdate = () => {
-      loadCustomersFromStorage(); // Recalculate customer totals when loads change
+      loadCustomers(); // Recalculate customer totals when loads change
     };
     
     window.addEventListener('customersUpdated', handleCustomersUpdate);
